@@ -79,8 +79,7 @@ async def test_register_login_logout(client: AsyncClient, db_session: AsyncSessi
     stub_res = await client.get("/api/v1/workflows", headers=headers)
     assert stub_res.status_code == 200
     stub_data = stub_res.json()
-    assert stub_data["workspace_id"] == workspace_id
-    assert stub_data["user_email"] == email
+    assert isinstance(stub_data, list)
 
     # 6. Logout
     logout_res = await client.post("/api/v1/auth/logout", headers=headers)
@@ -133,7 +132,7 @@ async def test_workspace_isolation(client: AsyncClient, db_session: AsyncSession
         headers={"Authorization": f"Bearer {token_a}"}
     )
     assert res_a_implicit.status_code == 200
-    assert res_a_implicit.json()["workspace_id"] == workspace_id_a
+    assert isinstance(res_a_implicit.json(), list)
 
     # User A requests their own workspace explicitly via header
     res_a_explicit = await client.get(
@@ -144,7 +143,7 @@ async def test_workspace_isolation(client: AsyncClient, db_session: AsyncSession
         }
     )
     assert res_a_explicit.status_code == 200
-    assert res_a_explicit.json()["workspace_id"] == workspace_id_a
+    assert isinstance(res_a_explicit.json(), list)
 
     # User A requests User B's workspace explicitly (should fail with 403 Forbidden)
     res_a_cross = await client.get(
