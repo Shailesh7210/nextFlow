@@ -47,7 +47,7 @@ export default function WorkflowCanvas() {
         nodeTypes={nodeTypes}
         fitView
       >
-        <Background color="#cbd5e1" gap={16} size={1} />
+        <Background color="#334155" gap={16} size={1.5} />
         <Controls position="bottom-left" />
         <MiniMap 
           position="bottom-right" 

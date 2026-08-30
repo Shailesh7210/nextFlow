@@ -6,7 +6,7 @@ import NodePalette from '@/workflow-editor/toolbar/NodePalette'
 import WorkflowCanvas from '@/workflow-editor/canvas/WorkflowCanvas'
 import ConfigPanel from '@/workflow-editor/config-panel/ConfigPanel'
 import Toolbar from '@/workflow-editor/toolbar/Toolbar'
-import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key } from 'lucide-react'
+import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key, Globe, Sliders } from 'lucide-react'
 import CredentialsModal from '@/components/CredentialsModal'
 
 const BACKEND_URL = 'http://localhost:8000'
@@ -27,6 +27,8 @@ export default function Home() {
   const [isRegistering, setIsRegistering] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [workspaceName, setWorkspaceName] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
 
   // Workspace Workflows List State
@@ -125,7 +127,12 @@ export default function Home() {
       const res = await fetch(`${BACKEND_URL}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ 
+          email, 
+          password,
+          full_name: fullName || null,
+          workspace_name: workspaceName || null
+        })
       })
 
       if (!res.ok) {
@@ -196,80 +203,172 @@ export default function Home() {
   // 1. Auth Gate Overlay
   if (!token || !workspaceId) {
     return (
-      <div className="w-screen h-screen flex bg-slate-100 items-center justify-center font-sans">
-        <div className="bg-white p-8 rounded-xl shadow-xl w-96 border border-slate-200">
-          <div className="flex flex-col items-center justify-center mb-6">
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-full mb-2">
-              <Sparkles size={24} />
+      <div className="w-screen h-screen flex font-sans bg-slate-950 text-slate-100 overflow-hidden select-none">
+        {/* Left Side: Product Intro & Dark Pattern Grid */}
+        <div className="hidden md:flex w-1/2 auth-grid-bg flex-col justify-between p-12 border-r border-slate-900">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-600/10 text-blue-500 rounded-lg border border-blue-500/20">
+              <Sparkles size={20} />
             </div>
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">NexFlow Platform</h1>
-            <p className="text-[12px] text-slate-400 mt-1">Design visual automation workflows</p>
+            <span className="font-extrabold text-[15px] tracking-wider text-slate-200 uppercase">NexFlow</span>
           </div>
 
-          {authError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-xs flex items-start gap-2">
-              <ShieldAlert size={16} className="shrink-0 mt-0.5" />
-              <span>{authError}</span>
-            </div>
-          )}
-
-          <form onSubmit={isRegistering ? handleRegister : handleLogin} className="flex flex-col gap-4">
+          <div className="max-w-md my-auto flex flex-col gap-6">
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                Email Address
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full text-[13px] px-3.5 py-2 border border-slate-300 rounded focus:outline-none focus:border-blue-500"
-                placeholder="you@domain.com"
-              />
+              <h1 className="text-4xl font-extrabold tracking-tight text-white leading-tight">
+                Automate your visual integrations.
+              </h1>
+              <p className="text-[14px] text-slate-400 mt-2 leading-relaxed">
+                Connect webhooks, map custom logic, and dispatch HTTP calls seamlessly with our secure workflow automation node editor.
+              </p>
             </div>
+
+            <div className="flex flex-col gap-4 border-t border-slate-905 border-slate-900/60 pt-6">
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 bg-blue-950/40 text-blue-400 rounded-lg border border-blue-900/40 mt-0.5">
+                  <Sparkles size={14} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[13px] text-slate-200">Real-time Visual Canvas</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Drag, drop, and configure standard triggers, delay wait states, and multi-route logical splitters.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 bg-green-950/40 text-green-400 rounded-lg border border-green-900/40 mt-0.5">
+                  <Globe size={14} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[13px] text-slate-200">AES-256 Symmetric Encryption</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Store basic credentials and third-party authentication tokens securely encrypted at rest.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 bg-purple-950/40 text-purple-400 rounded-lg border border-purple-900/40 mt-0.5">
+                  <Sliders size={14} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[13px] text-slate-200">Celery Async Executions</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Scale execution routines in background worker pools powered by Redis pub-sub queues.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-[11px] text-slate-500">
+            © 2026 NexFlow Inc. All rights reserved.
+          </div>
+        </div>
+
+        {/* Right Side: Auth Forms */}
+        <div className="w-full md:w-1/2 flex items-center justify-center bg-slate-950 p-8 overflow-y-auto">
+          <div className="w-full max-w-sm flex flex-col gap-6">
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full text-[13px] px-3.5 py-2 border border-slate-300 rounded focus:outline-none focus:border-blue-500"
-                placeholder="••••••••"
-              />
+              <h2 className="text-2xl font-bold tracking-tight text-white">
+                {isRegistering ? 'Create your account' : 'Welcome back'}
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                {isRegistering 
+                  ? 'Get started by creating your profile and default workspace' 
+                  : 'Enter your credentials to access your workspaces'}
+              </p>
             </div>
 
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded text-[13px] shadow transition mt-2"
-            >
-              <span>{isRegistering ? 'Register & Launch' : 'Sign In'}</span>
-              <ArrowRight size={15} />
-            </button>
-          </form>
+            {authError && (
+              <div className="p-3.5 bg-red-950/50 border border-red-900/60 rounded-xl text-red-300 text-xs flex items-start gap-2">
+                <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+                <span>{authError}</span>
+              </div>
+            )}
 
-          <div className="border-t border-slate-100 my-6" />
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegistering(!isRegistering)
-                setAuthError(null)
-              }}
-              className="text-[12px] text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1.5"
-            >
-              {isRegistering ? (
-                <>Already have an account? Sign In</>
-              ) : (
+            <form onSubmit={isRegistering ? handleRegister : handleLogin} className="flex flex-col gap-4">
+              {isRegistering && (
                 <>
-                  <UserPlus size={14} />
-                  Don't have an account? Register
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="w-full text-[13px] px-3.5 py-2 border border-slate-800 bg-slate-900 rounded-lg text-slate-100 placeholder-slate-650 focus:outline-none focus:border-blue-500"
+                      placeholder="Jane Doe"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                      Workspace / Organization Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={workspaceName}
+                      onChange={(e) => setWorkspaceName(e.target.value)}
+                      className="w-full text-[13px] px-3.5 py-2 border border-slate-800 bg-slate-900 rounded-lg text-slate-100 placeholder-slate-650 focus:outline-none focus:border-blue-500"
+                      placeholder="e.g. Acme Corp Operations"
+                    />
+                  </div>
                 </>
               )}
-            </button>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full text-[13px] px-3.5 py-2 border border-slate-800 bg-slate-900 rounded-lg text-slate-100 placeholder-slate-650 focus:outline-none focus:border-blue-500"
+                  placeholder="you@domain.com"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full text-[13px] px-3.5 py-2 border border-slate-800 bg-slate-900 rounded-lg text-slate-100 placeholder-slate-650 focus:outline-none focus:border-blue-500"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-[13px] shadow-md transition mt-2"
+              >
+                <span>{isRegistering ? 'Register & Launch' : 'Sign In'}</span>
+                <ArrowRight size={15} />
+              </button>
+            </form>
+
+            <div className="border-t border-slate-900 my-2" />
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegistering(!isRegistering)
+                  setAuthError(null)
+                }}
+                className="text-[12px] text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1.5"
+              >
+                {isRegistering ? (
+                  <>Already have an account? Sign In</>
+                ) : (
+                  <>
+                    <UserPlus size={14} />
+                    Don't have an account? Register
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -279,23 +378,23 @@ export default function Home() {
   // 2. Dashboards (If no workflow is actively open)
   if (!workflowId) {
     return (
-      <div className="w-screen h-screen bg-slate-50 flex flex-col font-sans">
-        <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6">
+      <div className="w-screen h-screen bg-slate-950 flex flex-col font-sans text-slate-200">
+        <header className="h-16 border-b border-slate-850 bg-slate-900 flex items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <FolderKanban className="text-blue-600" />
-            <h1 className="font-bold text-slate-800 text-lg">My Workflows</h1>
+            <FolderKanban className="text-blue-500" />
+            <h1 className="font-bold text-slate-100 text-lg">My Workflows</h1>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setCredentialsModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-600 hover:text-slate-800 font-semibold border border-slate-200 hover:bg-slate-100 rounded"
+              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-350 hover:text-white font-semibold border border-slate-800 hover:bg-slate-850 rounded-lg bg-slate-900 transition"
             >
               <Key size={14} />
               Manage Credentials
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-600 hover:text-slate-800 font-semibold border border-slate-200 hover:bg-slate-100 rounded"
+              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-350 hover:text-white font-semibold border border-slate-800 hover:bg-slate-850 rounded-lg bg-slate-900 transition"
             >
               <LogOut size={14} />
               Logout
@@ -305,8 +404,8 @@ export default function Home() {
 
         <main className="flex-1 max-w-4xl w-full mx-auto p-8 flex flex-col gap-6 overflow-y-auto">
           {/* Create Workflow Block */}
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-            <h2 className="font-bold text-slate-700 text-base mb-2">Create New Workflow</h2>
+          <div className="bg-slate-900 border border-slate-855 border-slate-850 rounded-xl p-6 shadow-md">
+            <h2 className="font-bold text-slate-200 text-base mb-2">Create New Workflow</h2>
             <form onSubmit={handleCreateWorkflow} className="flex gap-3">
               <input
                 type="text"
@@ -315,12 +414,12 @@ export default function Home() {
                 value={newWorkflowName}
                 onChange={(e) => setNewWorkflowName(e.target.value)}
                 placeholder="e.g. Sync Leads to Postgres"
-                className="flex-1 text-[13px] px-3.5 py-2 border border-slate-300 rounded focus:outline-none focus:border-blue-500"
+                className="flex-1 text-[13px] px-3.5 py-2 border border-slate-800 bg-slate-950 rounded-lg text-slate-100 placeholder-slate-650 focus:outline-none focus:border-blue-500"
               />
               <button
                 type="submit"
                 disabled={isCreatingWorkflow}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded text-[13px] flex items-center gap-2 shadow"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-[13px] flex items-center gap-2 shadow-md"
               >
                 <Plus size={15} />
                 <span>{isCreatingWorkflow ? 'Creating...' : 'Create'}</span>
@@ -334,7 +433,7 @@ export default function Home() {
               Select Workflow to Edit
             </h2>
             {workflowsList.length === 0 ? (
-              <div className="bg-slate-100 border border-dashed border-slate-300 rounded-xl p-10 text-center text-slate-400 text-sm">
+              <div className="bg-slate-900 border border-dashed border-slate-800 rounded-xl p-10 text-center text-slate-500 text-sm">
                 No workflows found. Enter a name above to create your first workflow canvas.
               </div>
             ) : (
@@ -343,27 +442,27 @@ export default function Home() {
                   <button
                     key={wf.id}
                     onClick={() => selectWorkflowToEdit(wf.id, wf.name)}
-                    className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm text-left hover:border-blue-500 hover:shadow-md transition flex flex-col justify-between group"
+                    className="bg-slate-900 border border-slate-850 rounded-xl p-5 shadow-sm text-left hover:border-blue-500 hover:shadow-md transition flex flex-col justify-between group"
                   >
                     <div>
-                      <h3 className="font-bold text-slate-800 group-hover:text-blue-600 transition text-[15px]">
+                      <h3 className="font-bold text-slate-200 group-hover:text-blue-400 transition text-[15px]">
                         {wf.name}
                       </h3>
                       <p className="text-[12px] text-slate-400 mt-1 line-clamp-2">
                         {wf.description || 'No description provided.'}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-4 w-full">
+                    <div className="flex items-center justify-between border-t border-slate-850 pt-4 mt-4 w-full">
                       <div className="flex items-center gap-2 text-[10px] font-bold uppercase">
                         <span className={`px-1.5 py-0.5 rounded border ${
                           wf.is_active 
-                            ? 'bg-green-50 text-green-700 border-green-200' 
-                            : 'bg-slate-100 text-slate-500 border-slate-200'
+                            ? 'bg-green-950/40 text-green-400 border-green-900/60' 
+                            : 'bg-slate-850 text-slate-400 border-slate-700'
                         }`}>
                           {wf.is_active ? 'Active' : 'Draft'}
                         </span>
                       </div>
-                      <span className="text-[11px] text-blue-600 font-semibold inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                      <span className="text-[11px] text-blue-450 hover:text-blue-400 font-semibold inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                         Open Canvas <ArrowRight size={12} />
                       </span>
                     </div>
@@ -380,20 +479,20 @@ export default function Home() {
 
   // 3. Workflow Editor Screen
   return (
-    <div className="w-screen h-screen bg-white flex flex-col font-sans overflow-hidden">
+    <div className="w-screen h-screen bg-slate-950 flex flex-col font-sans overflow-hidden text-slate-200">
       <Toolbar />
       <div className="flex-1 flex overflow-hidden">
         <NodePalette />
-        <main className="flex-1 h-full bg-slate-50 overflow-hidden relative">
+        <main className="flex-1 h-full bg-slate-950 overflow-hidden relative">
           {isLoading ? (
-            <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-50 text-slate-500 text-sm">
+            <div className="absolute inset-0 bg-slate-950/70 flex items-center justify-center z-50 text-slate-400 text-sm">
               Loading workflow graph layout...
             </div>
           ) : error ? (
-            <div className="absolute inset-0 bg-red-50 flex flex-col items-center justify-center z-50 text-red-700 text-sm p-4">
+            <div className="absolute inset-0 bg-red-950/40 flex flex-col items-center justify-center z-50 text-red-300 text-sm p-4 border border-red-900/40">
               <ShieldAlert size={36} className="mb-2" />
               <p className="font-bold">Error loading canvas</p>
-              <p className="text-xs text-red-500">{error}</p>
+              <p className="text-xs text-red-400">{error}</p>
             </div>
           ) : null}
           <WorkflowCanvas />

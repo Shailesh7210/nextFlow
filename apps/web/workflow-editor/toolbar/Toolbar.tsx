@@ -45,19 +45,19 @@ export default function Toolbar() {
   const canRedo = historyIndex < history.length - 1
 
   return (
-    <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 z-10 relative">
+    <header className="h-16 border-b border-slate-850 bg-slate-900 flex items-center justify-between px-6 z-10 relative">
       {/* Title & Info */}
       <div className="flex items-center gap-4">
         <div>
-          <h1 className="font-bold text-slate-800 text-lg leading-tight">{workflowName}</h1>
-          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+          <h1 className="font-bold text-slate-100 text-lg leading-tight">{workflowName}</h1>
+          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
             <span>Status:</span>
-            <span className={`font-semibold ${isActive ? 'text-green-600' : 'text-slate-400'}`}>
+            <span className={`font-semibold ${isActive ? 'text-green-500' : 'text-slate-500'}`}>
               {isActive ? 'Active' : 'Inactive'}
             </span>
-            <span className="text-slate-300">|</span>
+            <span className="text-slate-700">|</span>
             <span>Version:</span>
-            <span className="font-semibold text-slate-700">
+            <span className="font-semibold text-slate-300">
               {activeVersionId ? activeVersionId.substring(4, 10) + '...' : 'Unpublished'}
             </span>
           </div>
@@ -65,11 +65,11 @@ export default function Toolbar() {
       </div>
 
       {/* History Controls */}
-      <div className="flex items-center gap-1 border-x border-slate-100 px-4 h-8">
+      <div className="flex items-center gap-1 border-x border-slate-800 px-4 h-8">
         <button
           onClick={undo}
           disabled={!canUndo}
-          className="p-1.5 rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+          className="p-1.5 rounded text-slate-400 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent"
           title="Undo"
         >
           <Undo2 size={16} />
@@ -77,7 +77,7 @@ export default function Toolbar() {
         <button
           onClick={redo}
           disabled={!canRedo}
-          className="p-1.5 rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+          className="p-1.5 rounded text-slate-400 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent"
           title="Redo"
         >
           <Redo2 size={16} />
@@ -89,7 +89,7 @@ export default function Toolbar() {
         {/* Manage Credentials */}
         <button
           onClick={() => setCredentialsModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-slate-700 border border-slate-300 rounded hover:bg-slate-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-slate-300 border border-slate-700 bg-slate-900 rounded hover:bg-slate-800 hover:text-white"
         >
           <Key size={15} />
           Credentials
@@ -99,7 +99,7 @@ export default function Toolbar() {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-slate-700 border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-slate-300 border border-slate-700 bg-slate-900 rounded hover:bg-slate-800 hover:text-white disabled:opacity-50"
         >
           <Save size={15} />
           {isSaving ? 'Saving...' : 'Save Draft'}
@@ -109,7 +109,7 @@ export default function Toolbar() {
         <button
           onClick={handlePublish}
           disabled={isSaving}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-blue-700 border border-blue-200 bg-blue-50 rounded hover:bg-blue-100 disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-blue-400 border border-blue-900 bg-blue-950/40 rounded hover:bg-blue-950/80 disabled:opacity-50"
           title="Snapshot draft as new published version"
         >
           <CloudLightning size={15} />
@@ -122,8 +122,8 @@ export default function Toolbar() {
           disabled={isSaving || !activeVersionId}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded text-white shadow-sm disabled:opacity-50 ${
             isActive 
-              ? 'bg-red-600 hover:bg-red-700' 
-              : 'bg-green-600 hover:bg-green-700'
+              ? 'bg-red-650 hover:bg-red-750 bg-red-600' 
+              : 'bg-green-650 hover:bg-green-750 bg-green-600'
           }`}
           title={!activeVersionId ? 'Publish a version first before activating.' : ''}
         >
