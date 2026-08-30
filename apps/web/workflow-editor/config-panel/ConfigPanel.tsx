@@ -8,8 +8,18 @@ export default function ConfigPanel() {
     selectedNodeId, 
     selectNode, 
     updateNodeConfig,
-    setNodes
+    setNodes,
+    credentialsList,
+    loadCredentials
   } = useWorkflowStore()
+
+  React.useEffect(() => {
+    const token = localStorage.getItem('token')
+    const workspaceId = localStorage.getItem('workspace_id')
+    if (token && workspaceId) {
+      loadCredentials(token, workspaceId)
+    }
+  }, [loadCredentials, selectedNodeId])
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId)
 
@@ -51,6 +61,24 @@ export default function ConfigPanel() {
     setNodes(nextNodes)
   }
 
+  const handleSelectCredential = (credId: string | null) => {
+    const nextNodes = nodes.map((n) => {
+      if (n.id === selectedNode.id) {
+        const currentData = n.data as any
+        return {
+          ...n,
+          data: {
+            ...currentData,
+            credentialId: credId || null
+          }
+        }
+      }
+      return n
+    })
+    setNodes(nextNodes)
+    useWorkflowStore.getState().pushHistory(nextNodes, useWorkflowStore.getState().edges)
+  }
+
   return (
     <aside className="w-80 border-l border-slate-200 bg-white h-full flex flex-col z-10 relative shadow-sm">
       {/* Header */}
@@ -87,6 +115,23 @@ export default function ConfigPanel() {
         {/* HTTP Request Form */}
         {type === 'http-request' && (
           <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Authentication Credential
+              </label>
+              <select
+                value={(selectedNode.data as any).credentialId || ''}
+                onChange={(e) => handleSelectCredential(e.target.value || null)}
+                className="w-full text-[13px] px-3 py-1.5 border border-slate-300 rounded focus:outline-none focus:border-blue-500 bg-white"
+              >
+                <option value="">None (No Authentication)</option>
+                {credentialsList.map((cred: any) => (
+                  <option key={cred.id} value={cred.id}>
+                    {cred.name} ({cred.type})
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                 Request Method

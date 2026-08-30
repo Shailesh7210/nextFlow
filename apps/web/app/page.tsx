@@ -6,7 +6,8 @@ import NodePalette from '@/workflow-editor/toolbar/NodePalette'
 import WorkflowCanvas from '@/workflow-editor/canvas/WorkflowCanvas'
 import ConfigPanel from '@/workflow-editor/config-panel/ConfigPanel'
 import Toolbar from '@/workflow-editor/toolbar/Toolbar'
-import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban } from 'lucide-react'
+import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key } from 'lucide-react'
+import CredentialsModal from '@/components/CredentialsModal'
 
 const BACKEND_URL = 'http://localhost:8000'
 
@@ -16,7 +17,8 @@ export default function Home() {
     initWorkflow,
     loadWorkflow,
     isLoading,
-    error
+    error,
+    setCredentialsModalOpen
   } = useWorkflowStore()
 
   // Auth States
@@ -283,13 +285,22 @@ export default function Home() {
             <FolderKanban className="text-blue-600" />
             <h1 className="font-bold text-slate-800 text-lg">My Workflows</h1>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-600 hover:text-slate-800 font-semibold border border-slate-200 hover:bg-slate-100 rounded"
-          >
-            <LogOut size={14} />
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCredentialsModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-600 hover:text-slate-800 font-semibold border border-slate-200 hover:bg-slate-100 rounded"
+            >
+              <Key size={14} />
+              Manage Credentials
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-600 hover:text-slate-800 font-semibold border border-slate-200 hover:bg-slate-100 rounded"
+            >
+              <LogOut size={14} />
+              Logout
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 max-w-4xl w-full mx-auto p-8 flex flex-col gap-6 overflow-y-auto">
@@ -362,6 +373,7 @@ export default function Home() {
             )}
           </div>
         </main>
+        <CredentialsModal />
       </div>
     )
   }
@@ -388,6 +400,7 @@ export default function Home() {
         </main>
         <ConfigPanel />
       </div>
+      <CredentialsModal />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
-import { Undo2, Redo2, Save, CloudLightning, Power } from 'lucide-react'
+import { Undo2, Redo2, Save, CloudLightning, Power, Key } from 'lucide-react'
 
 export default function Toolbar() {
   const {
@@ -14,7 +14,8 @@ export default function Toolbar() {
     redo,
     saveWorkflow,
     publishWorkflow,
-    toggleActivation
+    toggleActivation,
+    setCredentialsModalOpen
   } = useWorkflowStore()
 
   const [token, setToken] = useState<string | null>(null)
@@ -85,6 +86,15 @@ export default function Toolbar() {
 
       {/* Action Controls */}
       <div className="flex items-center gap-3">
+        {/* Manage Credentials */}
+        <button
+          onClick={() => setCredentialsModalOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-slate-700 border border-slate-300 rounded hover:bg-slate-50"
+        >
+          <Key size={15} />
+          Credentials
+        </button>
+
         {/* Save Draft */}
         <button
           onClick={handleSave}
