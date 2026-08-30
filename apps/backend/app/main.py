@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
     logger.info("Shutdown completed.")
 
-from app.api.v1 import auth, workflows
+from app.api.v1 import auth, workflows, credentials
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -42,6 +42,7 @@ app = FastAPI(
 # Register routers
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(workflows.router, prefix=f"{settings.API_V1_STR}/workflows", tags=["workflows"])
+app.include_router(credentials.router, prefix=f"{settings.API_V1_STR}/credentials", tags=["credentials"])
 
 @app.get("/health")
 async def health(db: AsyncSession = Depends(get_db)):

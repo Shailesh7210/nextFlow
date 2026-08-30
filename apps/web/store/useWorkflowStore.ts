@@ -29,6 +29,7 @@ interface WorkflowState {
   isLoading: boolean
   isSaving: boolean
   error: string | null
+  isCredentialsModalOpen: boolean
 
   // Undo/Redo Stacks
   history: HistoryState[]
@@ -49,12 +50,15 @@ interface WorkflowState {
   pushHistory: (nodes: Node[], edges: Edge[]) => void
   undo: () => void
   redo: () => void
+  setCredentialsModalOpen: (open: boolean) => void
 
+  credentialsList: any[]
   // API Integration Actions
   loadWorkflow: (id: string, token: string, workspaceId: string) => Promise<void>
   saveWorkflow: (token: string, workspaceId: string) => Promise<void>
   publishWorkflow: (token: string, workspaceId: string) => Promise<void>
   toggleActivation: (token: string, workspaceId: string) => Promise<void>
+  loadCredentials: (token: string, workspaceId: string) => Promise<void>
 }
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
@@ -69,6 +73,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   isLoading: false,
   isSaving: false,
   error: null,
+  credentialsList: [],
+  isCredentialsModalOpen: false,
   
   history: [],
   historyIndex: -1,
@@ -90,6 +96,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
+  setCredentialsModalOpen: (open) => set({ isCredentialsModalOpen: open }),
 
   onNodesChange: (changes) => {
     const nextNodes = applyNodeChanges(changes, get().nodes)
@@ -400,5 +407,20 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     } catch (err: any) {
       set({ error: err.message, isSaving: false })
     }
+  },
+  
+  loadCredentials: async (token, workspaceId) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/credentials`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Workspace-ID': workspaceId
+        }
+      })
+      if (res.ok) {
+        const creds = await res.json()
+        set({ credentialsList: creds })
+      }
+    } catch (err) {}
   }
 }))
