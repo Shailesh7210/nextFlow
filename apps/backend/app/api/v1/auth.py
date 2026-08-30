@@ -36,14 +36,16 @@ async def register(
     # 2. Create User
     new_user = User(
         email=user_in.email,
-        hashed_password=get_password_hash(user_in.password)
+        hashed_password=get_password_hash(user_in.password),
+        full_name=user_in.full_name
     )
     db.add(new_user)
     await db.flush()  # Generates the new_user.id
 
     # 3. Create Default Workspace
+    wsp_name = user_in.workspace_name or f"{user_in.full_name or user_in.email.split('@')[0]}'s Workspace"
     default_workspace = Workspace(
-        name=f"{user_in.email.split('@')[0]}'s Workspace"
+        name=wsp_name
     )
     db.add(default_workspace)
     await db.flush()  # Generates default_workspace.id
