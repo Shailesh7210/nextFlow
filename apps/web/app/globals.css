@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Light mode defaults */
+:root {
+  --canvas-bg: #f8fafc;
+  --canvas-dots: #cbd5e1;
+}
+
+/* Dark mode values */
+.dark {
+  --canvas-bg: #020617;
+  --canvas-dots: #334155;
+}
+
 html,
 body {
   margin: 0;
@@ -9,33 +21,32 @@ body {
   width: 100%;
   height: 100%;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  background-color: #020617; /* Dark slate background */
-  color: #f8fafc;
   overflow: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Custom React Flow Node Styling Overrides for Dark Mode */
+/* Light Theme Nodes */
 .react-flow__node {
   border-radius: 12px;
   font-size: 12px;
-  background: #0f172a !important; /* slate-900 */
-  border: 1px solid #1e293b !important; /* slate-800 */
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3) !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important; /* border-slate-200 */
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05) !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .react-flow__node.selected {
-  border-color: #3b82f6 !important; /* blue-500 */
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
 }
 
 .react-flow__handle {
   width: 10px;
   height: 10px;
-  background: #475569 !important; /* slate-600 */
-  border: 2px solid #0f172a !important; /* border matching node bg */
+  background: #94a3b8 !important; /* slate-400 */
+  border: 2.5px solid #ffffff !important;
   border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .react-flow__handle:hover {
@@ -43,7 +54,24 @@ body {
   transform: scale(1.2);
 }
 
-/* Custom Webpack Grid Pattern for Split Login Page */
+/* Dark Theme Overrides */
+.dark .react-flow__node {
+  background: #0f172a !important; /* slate-900 */
+  border: 1px solid #1e293b !important; /* slate-800 */
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3) !important;
+}
+
+.dark .react-flow__node.selected {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4) !important;
+}
+
+.dark .react-flow__handle {
+  background: #475569 !important; /* slate-600 */
+  border: 2.5px solid #0f172a !important;
+}
+
+/* Split Login Page Background Grid Pattern */
 .auth-grid-bg {
   background-color: #020617;
   background-image: 
@@ -63,21 +91,29 @@ body {
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Custom Scrollbar for Dark Mode */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #020617;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #cbd5e1;
   border-radius: 3px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+}
+
 ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }

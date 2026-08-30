@@ -30,6 +30,8 @@ interface WorkflowState {
   isSaving: boolean
   error: string | null
   isCredentialsModalOpen: boolean
+  theme: 'light' | 'dark'
+  setTheme: (theme: 'light' | 'dark') => void
 
   // Undo/Redo Stacks
   history: HistoryState[]
@@ -75,6 +77,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   error: null,
   credentialsList: [],
   isCredentialsModalOpen: false,
+  theme: 'dark',
   
   history: [],
   historyIndex: -1,
@@ -97,6 +100,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   setCredentialsModalOpen: (open) => set({ isCredentialsModalOpen: open }),
+  setTheme: (theme) => set({ theme }),
 
   onNodesChange: (changes) => {
     const nextNodes = applyNodeChanges(changes, get().nodes)
