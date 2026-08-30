@@ -6,7 +6,7 @@ import NodePalette from '@/workflow-editor/toolbar/NodePalette'
 import WorkflowCanvas from '@/workflow-editor/canvas/WorkflowCanvas'
 import ConfigPanel from '@/workflow-editor/config-panel/ConfigPanel'
 import Toolbar from '@/workflow-editor/toolbar/Toolbar'
-import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key, Globe, Sliders } from 'lucide-react'
+import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key, Globe, Sliders, Sun, Moon } from 'lucide-react'
 import CredentialsModal from '@/components/CredentialsModal'
 
 const BACKEND_URL = 'http://localhost:8000'
@@ -18,7 +18,9 @@ export default function Home() {
     loadWorkflow,
     isLoading,
     error,
-    setCredentialsModalOpen
+    setCredentialsModalOpen,
+    theme,
+    setTheme
   } = useWorkflowStore()
 
   // Auth States
@@ -45,6 +47,15 @@ export default function Home() {
       setWorkspaceId(savedWorkspaceId)
     }
   }, [])
+
+  // Synchronize HTML Theme Class
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [theme])
 
   // Fetch workspaces & default them on login
   const initializeWorkspace = async (accessToken: string) => {
@@ -378,23 +389,31 @@ export default function Home() {
   // 2. Dashboards (If no workflow is actively open)
   if (!workflowId) {
     return (
-      <div className="w-screen h-screen bg-slate-950 flex flex-col font-sans text-slate-200">
-        <header className="h-16 border-b border-slate-850 bg-slate-900 flex items-center justify-between px-6">
+      <div className="w-screen h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans text-slate-800 dark:text-slate-200 transition-colors duration-200">
+        <header className="h-16 border-b border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 flex items-center justify-between px-6 transition-colors duration-200">
           <div className="flex items-center gap-3">
-            <FolderKanban className="text-blue-500" />
-            <h1 className="font-bold text-slate-100 text-lg">My Workflows</h1>
+            <FolderKanban className="text-blue-600 dark:text-blue-500" />
+            <h1 className="font-bold text-slate-800 dark:text-slate-100 text-lg">My Workflows</h1>
           </div>
           <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="flex items-center justify-center p-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-850 bg-white dark:bg-slate-900 rounded-lg text-slate-600 dark:text-slate-350 transition"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
             <button
               onClick={() => setCredentialsModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-350 hover:text-white font-semibold border border-slate-800 hover:bg-slate-850 rounded-lg bg-slate-900 transition"
+              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-650 dark:text-slate-350 hover:text-slate-800 dark:hover:text-white font-semibold border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-850 rounded-lg bg-white dark:bg-slate-900 transition"
             >
               <Key size={14} />
               Manage Credentials
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-350 hover:text-white font-semibold border border-slate-800 hover:bg-slate-850 rounded-lg bg-slate-900 transition"
+              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-650 dark:text-slate-350 hover:text-slate-800 dark:hover:text-white font-semibold border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-850 rounded-lg bg-white dark:bg-slate-900 transition"
             >
               <LogOut size={14} />
               Logout
@@ -404,8 +423,8 @@ export default function Home() {
 
         <main className="flex-1 max-w-4xl w-full mx-auto p-8 flex flex-col gap-6 overflow-y-auto">
           {/* Create Workflow Block */}
-          <div className="bg-slate-900 border border-slate-855 border-slate-850 rounded-xl p-6 shadow-md">
-            <h2 className="font-bold text-slate-200 text-base mb-2">Create New Workflow</h2>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-xl p-6 shadow-sm dark:shadow-md transition-colors duration-200">
+            <h2 className="font-bold text-slate-700 dark:text-slate-200 text-base mb-2">Create New Workflow</h2>
             <form onSubmit={handleCreateWorkflow} className="flex gap-3">
               <input
                 type="text"
@@ -414,7 +433,7 @@ export default function Home() {
                 value={newWorkflowName}
                 onChange={(e) => setNewWorkflowName(e.target.value)}
                 placeholder="e.g. Sync Leads to Postgres"
-                className="flex-1 text-[13px] px-3.5 py-2 border border-slate-800 bg-slate-950 rounded-lg text-slate-100 placeholder-slate-650 focus:outline-none focus:border-blue-500"
+                className="flex-1 text-[13px] px-3.5 py-2 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-650 focus:outline-none focus:border-blue-500"
               />
               <button
                 type="submit"
@@ -433,7 +452,7 @@ export default function Home() {
               Select Workflow to Edit
             </h2>
             {workflowsList.length === 0 ? (
-              <div className="bg-slate-900 border border-dashed border-slate-800 rounded-xl p-10 text-center text-slate-500 text-sm">
+              <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-10 text-center text-slate-450 dark:text-slate-500 text-sm">
                 No workflows found. Enter a name above to create your first workflow canvas.
               </div>
             ) : (
@@ -442,27 +461,27 @@ export default function Home() {
                   <button
                     key={wf.id}
                     onClick={() => selectWorkflowToEdit(wf.id, wf.name)}
-                    className="bg-slate-900 border border-slate-850 rounded-xl p-5 shadow-sm text-left hover:border-blue-500 hover:shadow-md transition flex flex-col justify-between group"
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-xl p-5 shadow-sm text-left hover:border-blue-500 hover:shadow-md transition flex flex-col justify-between group"
                   >
                     <div>
-                      <h3 className="font-bold text-slate-200 group-hover:text-blue-400 transition text-[15px]">
+                      <h3 className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition text-[15px]">
                         {wf.name}
                       </h3>
-                      <p className="text-[12px] text-slate-400 mt-1 line-clamp-2">
+                      <p className="text-[12px] text-slate-400 dark:text-slate-400 mt-1 line-clamp-2">
                         {wf.description || 'No description provided.'}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between border-t border-slate-850 pt-4 mt-4 w-full">
+                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-850 pt-4 mt-4 w-full">
                       <div className="flex items-center gap-2 text-[10px] font-bold uppercase">
                         <span className={`px-1.5 py-0.5 rounded border ${
                           wf.is_active 
-                            ? 'bg-green-950/40 text-green-400 border-green-900/60' 
-                            : 'bg-slate-850 text-slate-400 border-slate-700'
+                            ? 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/60' 
+                            : 'bg-slate-100 dark:bg-slate-850 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                         }`}>
                           {wf.is_active ? 'Active' : 'Draft'}
                         </span>
                       </div>
-                      <span className="text-[11px] text-blue-450 hover:text-blue-400 font-semibold inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                      <span className="text-[11px] text-blue-650 dark:text-blue-450 hover:text-blue-400 font-semibold inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                         Open Canvas <ArrowRight size={12} />
                       </span>
                     </div>
