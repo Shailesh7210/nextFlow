@@ -1,0 +1,404 @@
+import { create } from 'zustand'
+import { 
+  Connection, 
+  Edge, 
+  Node, 
+  addEdge, 
+  applyNodeChanges, 
+  applyEdgeChanges, 
+  NodeChange, 
+  EdgeChange 
+} from '@xyflow/react'
+
+const BACKEND_URL = 'http://localhost:8000'
+
+interface HistoryState {
+  nodes: Node[]
+  edges: Edge[]
+}
+
+interface WorkflowState {
+  nodes: Node[]
+  edges: Edge[]
+  selectedNodeId: string | null
+  workflowId: string | null
+  workflowName: string
+  workflowDescription: string
+  isActive: boolean
+  activeVersionId: string | null
+  isLoading: boolean
+  isSaving: boolean
+  error: string | null
+
+  // Undo/Redo Stacks
+  history: HistoryState[]
+  historyIndex: number
+
+  // Actions
+  initWorkflow: (id: string, name: string) => void
+  setNodes: (nodes: Node[]) => void
+  setEdges: (edges: Edge[]) => void
+  onNodesChange: (changes: NodeChange[]) => void
+  onEdgesChange: (changes: EdgeChange[]) => void
+  onConnect: (connection: Connection) => void
+  addNode: (type: string) => void
+  selectNode: (id: string | null) => void
+  updateNodeConfig: (id: string, config: any) => void
+  
+  // History Actions
+  pushHistory: (nodes: Node[], edges: Edge[]) => void
+  undo: () => void
+  redo: () => void
+
+  // API Integration Actions
+  loadWorkflow: (id: string, token: string, workspaceId: string) => Promise<void>
+  saveWorkflow: (token: string, workspaceId: string) => Promise<void>
+  publishWorkflow: (token: string, workspaceId: string) => Promise<void>
+  toggleActivation: (token: string, workspaceId: string) => Promise<void>
+}
+
+export const useWorkflowStore = create<WorkflowState>((set, get) => ({
+  nodes: [],
+  edges: [],
+  selectedNodeId: null,
+  workflowId: null,
+  workflowName: 'New Workflow',
+  workflowDescription: '',
+  isActive: false,
+  activeVersionId: null,
+  isLoading: false,
+  isSaving: false,
+  error: null,
+  
+  history: [],
+  historyIndex: -1,
+
+  initWorkflow: (id, name) => {
+    const initialNodes: Node[] = []
+    const initialEdges: Edge[] = []
+    set({
+      workflowId: id,
+      workflowName: name,
+      nodes: initialNodes,
+      edges: initialEdges,
+      selectedNodeId: null,
+      history: [{ nodes: initialNodes, edges: initialEdges }],
+      historyIndex: 0,
+      error: null
+    })
+  },
+
+  setNodes: (nodes) => set({ nodes }),
+  setEdges: (edges) => set({ edges }),
+
+  onNodesChange: (changes) => {
+    const nextNodes = applyNodeChanges(changes, get().nodes)
+    set({ nodes: nextNodes })
+    
+    // Check if changes include operations like deleting nodes
+    const hasStructureChange = changes.some(
+      (c) => c.type === 'remove' || c.type === 'add'
+    )
+    if (hasStructureChange) {
+      get().pushHistory(nextNodes, get().edges)
+    }
+  },
+
+  onEdgesChange: (changes) => {
+    const nextEdges = applyEdgeChanges(changes, get().edges)
+    set({ edges: nextEdges })
+
+    const hasRemove = changes.some((c) => c.type === 'remove')
+    if (hasRemove) {
+      get().pushHistory(get().nodes, nextEdges)
+    }
+  },
+
+  onConnect: (connection) => {
+    // Prevent connecting input to input or output to output
+    if (
+      (connection.sourceHandle === 'input' && connection.targetHandle === 'input') ||
+      (connection.sourceHandle === 'output' && connection.targetHandle === 'output')
+    ) {
+      return
+    }
+
+    const nextEdges = addEdge(
+      { 
+        ...connection, 
+        id: `edge-${connection.source}-${connection.target}`,
+        // Styling edges
+        style: { stroke: '#94a3b8', strokeWidth: 2 }
+      }, 
+      get().edges
+    )
+    set({ edges: nextEdges })
+    get().pushHistory(get().nodes, nextEdges)
+  },
+
+  addNode: (type) => {
+    const id = `${type}_${Math.random().toString(36).substr(2, 9)}`
+    
+    // Default node configs
+    let config = {}
+    if (type === 'http-request') {
+      config = { method: 'GET', url: '', headers: {}, body: null }
+    } else if (type === 'set') {
+      config = { value: '', variable: '' }
+    } else if (type === 'if') {
+      config = { condition: 'equals', value1: '', value2: '' }
+    } else if (type === 'delay') {
+      config = { duration: 5 }
+    } else if (type === 'switch') {
+      config = { rules: [] }
+    }
+
+    const newNode: Node = {
+      id,
+      type,
+      position: { x: 200 + Math.random() * 100, y: 150 + Math.random() * 100 },
+      data: { 
+        label: type.charAt(0).toUpperCase() + type.slice(1), 
+        config,
+        credentialId: null
+      }
+    }
+
+    const nextNodes = [...get().nodes, newNode]
+    set({ nodes: nextNodes })
+    get().pushHistory(nextNodes, get().edges)
+  },
+
+  selectNode: (id) => set({ selectedNodeId: id }),
+
+  updateNodeConfig: (id, configValues) => {
+    const nextNodes = get().nodes.map((n) => {
+      if (n.id === id) {
+        const currentData = n.data as any
+        return {
+          ...n,
+          data: {
+            ...currentData,
+            config: {
+              ...(currentData.config || {}),
+              ...configValues
+            }
+          }
+        }
+      }
+      return n
+    })
+    set({ nodes: nextNodes })
+    get().pushHistory(nextNodes, get().edges)
+  },
+
+  // History system
+  pushHistory: (nodes, edges) => {
+    const { history, historyIndex } = get()
+    // Strip future history if we were in middle of undo stack
+    const cleanHistory = history.slice(0, historyIndex + 1)
+    
+    // Clone nodes and edges to prevent reference mutations
+    const snapshot = {
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges))
+    }
+
+    set({
+      history: [...cleanHistory, snapshot],
+      historyIndex: cleanHistory.length
+    })
+  },
+
+  undo: () => {
+    const { history, historyIndex } = get()
+    if (historyIndex > 0) {
+      const prevIndex = historyIndex - 1
+      const prevState = history[prevIndex]
+      set({
+        nodes: JSON.parse(JSON.stringify(prevState.nodes)),
+        edges: JSON.parse(JSON.stringify(prevState.edges)),
+        historyIndex: prevIndex,
+        selectedNodeId: null
+      })
+    }
+  },
+
+  redo: () => {
+    const { history, historyIndex } = get()
+    if (historyIndex < history.length - 1) {
+      const nextIndex = historyIndex + 1
+      const nextState = history[nextIndex]
+      set({
+        nodes: JSON.parse(JSON.stringify(nextState.nodes)),
+        edges: JSON.parse(JSON.stringify(nextState.edges)),
+        historyIndex: nextIndex,
+        selectedNodeId: null
+      })
+    }
+  },
+
+  // API Integrations
+  loadWorkflow: async (id, token, workspaceId) => {
+    set({ isLoading: true, error: null })
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/workflows/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Workspace-ID': workspaceId
+        }
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to load workflow')
+      }
+
+      const workflow = await res.json()
+
+      // Map backend node objects to React Flow node format
+      const loadedNodes: Node[] = (workflow.nodes || []).map((n: any) => ({
+        id: n.id,
+        type: n.type,
+        position: n.position || { x: 100, y: 100 },
+        data: {
+          label: n.name || n.type.charAt(0).toUpperCase() + n.type.slice(1),
+          config: n.config || {},
+          credentialId: n.credentialId || null
+        }
+      }))
+
+      // Map backend connection objects to React Flow edge format
+      const loadedEdges: Edge[] = (workflow.connections || []).map((c: any, index: number) => ({
+        id: `edge-${c.source}-${c.target}`,
+        source: c.source,
+        target: c.target,
+        sourceHandle: c.sourcePort || 'main',
+        targetHandle: c.targetPort || 'main',
+        style: { stroke: '#94a3b8', strokeWidth: 2 }
+      }))
+
+      set({
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        workflowDescription: workflow.description || '',
+        isActive: workflow.is_active,
+        activeVersionId: workflow.active_version_id,
+        nodes: loadedNodes,
+        edges: loadedEdges,
+        history: [{ nodes: loadedNodes, edges: loadedEdges }],
+        historyIndex: 0,
+        isLoading: false
+      })
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false })
+    }
+  },
+
+  saveWorkflow: async (token, workspaceId) => {
+    const { workflowId, workflowName, workflowDescription, nodes, edges } = get()
+    if (!workflowId) return
+
+    set({ isSaving: true, error: null })
+    try {
+      // Map React Flow nodes back to db format
+      const apiNodes = nodes.map((n) => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        name: n.data.label,
+        config: n.data.config || {},
+        credentialId: n.data.credentialId || null
+      }))
+
+      // Map React Flow edges back to db connection format
+      const apiConnections = edges.map((e) => ({
+        source: e.source,
+        sourcePort: e.sourceHandle || 'main',
+        target: e.target,
+        targetPort: e.targetHandle || 'main'
+      }))
+
+      const res = await fetch(`${BACKEND_URL}/api/v1/workflows/${workflowId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-Workspace-ID': workspaceId
+        },
+        body: JSON.stringify({
+          name: workflowName,
+          description: workflowDescription,
+          nodes: apiNodes,
+          connections: apiConnections
+        })
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to save workflow')
+      }
+
+      set({ isSaving: false })
+    } catch (err: any) {
+      set({ error: err.message, isSaving: false })
+    }
+  },
+
+  publishWorkflow: async (token, workspaceId) => {
+    const { workflowId } = get()
+    if (!workflowId) return
+
+    set({ isSaving: true, error: null })
+    try {
+      // Save current draft first
+      await get().saveWorkflow(token, workspaceId)
+
+      // Hit publish endpoint
+      const res = await fetch(`${BACKEND_URL}/api/v1/workflows/${workflowId}/publish`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Workspace-ID': workspaceId
+        }
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to publish version')
+      }
+
+      const version = await res.json()
+      set({ 
+        activeVersionId: version.id, 
+        isSaving: false 
+      })
+    } catch (err: any) {
+      set({ error: err.message, isSaving: false })
+    }
+  },
+
+  toggleActivation: async (token, workspaceId) => {
+    const { workflowId, isActive } = get()
+    if (!workflowId) return
+
+    const endpoint = isActive ? 'deactivate' : 'activate'
+    set({ isSaving: true, error: null })
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/workflows/${workflowId}/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Workspace-ID': workspaceId
+        }
+      })
+
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.detail || `Failed to ${endpoint} workflow`)
+      }
+
+      const workflow = await res.json()
+      set({ isActive: workflow.is_active, isSaving: false })
+    } catch (err: any) {
+      set({ error: err.message, isSaving: false })
+    }
+  }
+}))

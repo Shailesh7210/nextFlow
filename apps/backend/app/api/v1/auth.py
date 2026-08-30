@@ -102,3 +102,21 @@ async def logout(
     # Blacklist token for 30 minutes (matching token lifespan)
     await redis_client.set(f"blacklist:{token}", "1", ex=1800)
     return {"detail": "Successfully logged out."}
+
+from app.schemas.workspace import WorkspaceOut
+
+@router.get("/workspaces", response_model=list[WorkspaceOut])
+async def get_user_workspaces(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all workspaces associated with the current user.
+    """
+    query = select(Workspace).join(
+        WorkspaceMember, 
+        WorkspaceMember.workspace_id == Workspace.id
+    ).filter(WorkspaceMember.user_id == current_user.id)
+    
+    result = await db.execute(query)
+    return result.scalars().all()
