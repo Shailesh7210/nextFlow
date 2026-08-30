@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.security import get_password_hash, verify_password, create_access_token
-from app.api.dependencies import oauth2_scheme
+from app.api.dependencies import oauth2_scheme, get_current_user
 from app.db.session import get_db
 from app.db.redis import redis_client
 from app.models.user import User
