@@ -58,6 +58,29 @@ services:
       redis:
         condition: service_healthy
 
+  worker:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: nexflow_worker
+    command: celery -A app.core.celery_app worker --loglevel=info
+    restart: always
+    volumes:
+      - ./apps/backend:/app
+      - /app/.venv
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/nexflow
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:

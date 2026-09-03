@@ -7,3 +7,4 @@ from app.models.workspace_member import WorkspaceMember  # noqa
 from app.models.workflow import Workflow  # noqa
 from app.models.workflow_version import WorkflowVersion  # noqa
 from app.models.credential import Credential  # noqa
+from app.models.execution_log import ExecutionLog  # noqa

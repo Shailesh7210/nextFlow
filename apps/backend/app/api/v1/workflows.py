@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -7,7 +7,10 @@ from app.api.dependencies import get_current_active_workspace, RoleChecker
 from app.db.session import get_db
 from app.models.workflow import Workflow
 from app.models.workflow_version import WorkflowVersion
+from app.models.execution_log import ExecutionLog
 from app.schemas.workflow import WorkflowCreate, WorkflowUpdate, WorkflowOut, WorkflowVersionOut
+from app.schemas.execution import ExecutionLogOut
+from app.tasks import execute_workflow_task
 
 router = APIRouter()
 
@@ -301,3 +304,76 @@ async def list_workflow_versions(
     ).order_by(WorkflowVersion.version.desc())
     versions_result = await db.execute(versions_query)
     return versions_result.scalars().all()
+
+@router.post("/{id}/execute", response_model=ExecutionLogOut, status_code=status.HTTP_201_CREATED)
+async def execute_workflow(
+    id: str,
+    input_data: dict = Body(default=dict),
+    db: AsyncSession = Depends(get_db),
+    workspace = Depends(get_current_active_workspace),
+    _member = Depends(RoleChecker(["owner", "admin", "editor"]))
+):
+    """
+    Manually trigger workflow execution asynchronously.
+    """
+    query = select(Workflow).filter(
+        Workflow.id == id,
+        Workflow.workspace_id == workspace.id
+    )
+    result = await db.execute(query)
+    workflow = result.scalars().first()
+    if not workflow:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found."
+        )
+    
+    if not workflow.active_version_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Workflow must have a published active version before execution."
+        )
+
+    # Create execution log
+    exec_log = ExecutionLog(
+        workflow_id=workflow.id,
+        version_id=workflow.active_version_id,
+        status="PENDING",
+        trigger_type="manual",
+        input_data=input_data
+    )
+    db.add(exec_log)
+    await db.commit()
+    await db.refresh(exec_log)
+
+    # Queue celery task
+    execute_workflow_task.delay(exec_log.id)
+
+    return exec_log
+
+@router.get("/{id}/executions", response_model=List[ExecutionLogOut])
+async def list_workflow_executions(
+    id: str,
+    db: AsyncSession = Depends(get_db),
+    workspace = Depends(get_current_active_workspace)
+):
+    """
+    Retrieve execution history logs for a workflow.
+    """
+    query = select(Workflow).filter(
+        Workflow.id == id,
+        Workflow.workspace_id == workspace.id
+    )
+    result = await db.execute(query)
+    workflow = result.scalars().first()
+    if not workflow:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found."
+        )
+
+    execs_query = select(ExecutionLog).filter(
+        ExecutionLog.workflow_id == id
+    ).order_by(ExecutionLog.created_at.desc())
+    execs_result = await db.execute(execs_query)
+    return execs_result.scalars().all()
