@@ -13,12 +13,23 @@ from app.models.credential import Credential
 from app.models.execution_log import ExecutionLog
 from app.models.workflow_version import WorkflowVersion
 from app.core.crypto import decrypt_data
+from app.db.redis import redis_client
 
 logger = logging.getLogger(__name__)
 
 class WorkflowExecutor:
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    async def publish_event(self, execution_id: str, payload: dict):
+        """
+        Publishes real-time execution step events to Redis Pub/Sub channel for WebSocket relay.
+        """
+        try:
+            channel_name = f"execution:{execution_id}"
+            await redis_client.publish(channel_name, json.dumps(payload))
+        except Exception as e:
+            logger.warning(f"Failed to publish execution event to Redis channel execution:{execution_id}: {e}")
 
     def resolve_value(self, val: Any, context: Dict[str, Any]) -> Any:
         """
@@ -293,6 +304,14 @@ class WorkflowExecutor:
             node_type = node.get("type", "")
             logger.info(f"Executing node {node_id} ({node_type})...")
 
+            await self.publish_event(execution_log_id, {
+                "event": "NODE_STARTED",
+                "execution_id": execution_log_id,
+                "node_id": node_id,
+                "node_type": node_type,
+                "started_at": node_started.isoformat()
+            })
+
             try:
                 # Capture inputs passed into node
                 node_inputs = {
@@ -306,15 +325,25 @@ class WorkflowExecutor:
                 # Record results
                 context["$json"] = node_output
                 context["$node"][node_id] = node_output
+                finished_at_iso = datetime.now(timezone.utc).isoformat()
 
                 node_executions.append({
                     "node_id": node_id,
                     "node_type": node_type,
                     "status": "SUCCESS",
                     "started_at": node_started.isoformat(),
-                    "finished_at": datetime.now(timezone.utc).isoformat(),
+                    "finished_at": finished_at_iso,
                     "inputs": node_inputs,
                     "outputs": node_output
+                })
+
+                await self.publish_event(execution_log_id, {
+                    "event": "NODE_COMPLETED",
+                    "execution_id": execution_log_id,
+                    "node_id": node_id,
+                    "node_type": node_type,
+                    "outputs": node_output,
+                    "finished_at": finished_at_iso
                 })
 
                 # Determine next branches to visit
@@ -336,16 +365,26 @@ class WorkflowExecutor:
                 logger.exception(f"Node {node_id} execution failed.")
                 overall_status = "FAILED"
                 error_msg = str(e)
+                finished_at_iso = datetime.now(timezone.utc).isoformat()
                 
                 node_executions.append({
                     "node_id": node_id,
                     "node_type": node_type,
                     "status": "FAILED",
                     "started_at": node_started.isoformat(),
-                    "finished_at": datetime.now(timezone.utc).isoformat(),
+                    "finished_at": finished_at_iso,
                     "inputs": {},
                     "outputs": {},
                     "error": error_msg
+                })
+
+                await self.publish_event(execution_log_id, {
+                    "event": "NODE_FAILED",
+                    "execution_id": execution_log_id,
+                    "node_id": node_id,
+                    "node_type": node_type,
+                    "error": error_msg,
+                    "finished_at": finished_at_iso
                 })
                 break # Halt executing remainder of the graph
 
@@ -356,3 +395,11 @@ class WorkflowExecutor:
         exec_log.error_message = error_msg
         exec_log.finished_at = datetime.now(timezone.utc)
         await self.db.commit()
+
+        await self.publish_event(execution_log_id, {
+            "event": "WORKFLOW_FINISHED",
+            "execution_id": execution_log_id,
+            "status": overall_status,
+            "error_message": error_msg,
+            "finished_at": exec_log.finished_at.isoformat()
+        })

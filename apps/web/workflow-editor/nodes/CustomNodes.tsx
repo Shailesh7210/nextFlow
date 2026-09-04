@@ -1,6 +1,7 @@
 import React from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key } from 'lucide-react'
+import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { useWorkflowStore } from '../../store/useWorkflowStore'
 
 interface NodeHeaderProps {
   icon: React.ReactNode
@@ -27,13 +28,59 @@ const NodeHeader = ({ icon, title, subtitle, colorClass, selected }: NodeHeaderP
   )
 }
 
+const ExecutionStatusBadge = ({ id }: { id: string }) => {
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+
+  if (!executionState || executionState === 'IDLE') return null
+
+  if (executionState === 'RUNNING') {
+    return (
+      <div className="absolute -top-2.5 -right-2 bg-blue-600 text-white rounded-full p-0.5 shadow-md animate-pulse flex items-center gap-1 text-[9px] font-bold px-2 z-20 border border-blue-400">
+        <Loader2 size={11} className="animate-spin" />
+        <span>RUNNING</span>
+      </div>
+    )
+  }
+
+  if (executionState === 'SUCCESS') {
+    return (
+      <div className="absolute -top-2.5 -right-2 bg-emerald-600 text-white rounded-full p-0.5 shadow-md flex items-center gap-1 text-[9px] font-bold px-2 z-20 border border-emerald-400">
+        <CheckCircle2 size={11} />
+        <span>PASSED</span>
+      </div>
+    )
+  }
+
+  if (executionState === 'FAILED') {
+    return (
+      <div className="absolute -top-2.5 -right-2 bg-rose-600 text-white rounded-full p-0.5 shadow-md flex items-center gap-1 text-[9px] font-bold px-2 z-20 border border-rose-400">
+        <AlertCircle size={11} />
+        <span>FAILED</span>
+      </div>
+    )
+  }
+
+  return null
+}
+
+const getExecutionBorderClass = (executionState?: string) => {
+  if (executionState === 'RUNNING') return 'border-blue-500 ring-4 ring-blue-500/30'
+  if (executionState === 'SUCCESS') return 'border-emerald-500 ring-2 ring-emerald-500/30'
+  if (executionState === 'FAILED') return 'border-rose-500 ring-4 ring-rose-500/30'
+  return ''
+}
+
 // Webhook Node (Trigger)
-export const WebhookNode = ({ data, selected }: any) => {
+export const WebhookNode = ({ id, data, selected }: any) => {
   const credentialId = data?.credentialId
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
+
   return (
-    <div className={`w-[220px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
-      selected ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+    <div className={`relative w-[220px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
     }`}>
+      <ExecutionStatusBadge id={id} />
       <NodeHeader
         icon={<Webhook size={16} />}
         title={data.label || "Webhook Trigger"}
@@ -73,15 +120,18 @@ export const WebhookNode = ({ data, selected }: any) => {
 }
 
 // HTTP Request Node (Action)
-export const HttpRequestNode = ({ data, selected }: any) => {
+export const HttpRequestNode = ({ id, data, selected }: any) => {
   const method = data?.config?.method || 'GET'
   const url = data?.config?.url || 'Configure endpoint url...'
   const credentialId = data?.credentialId
-  
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
+
   return (
-    <div className={`w-[240px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
-      selected ? 'border-green-600 ring-2 ring-green-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+    <div className={`relative w-[240px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-green-600 ring-2 ring-green-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
     }`}>
+      <ExecutionStatusBadge id={id} />
       {/* Input Handle */}
       <Handle 
         type="target" 
@@ -143,14 +193,17 @@ export const HttpRequestNode = ({ data, selected }: any) => {
 }
 
 // Set Node (Logic)
-export const SetNode = ({ data, selected }: any) => {
+export const SetNode = ({ id, data, selected }: any) => {
   const variable = data?.config?.variable || 'key'
   const value = data?.config?.value || 'value'
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
 
   return (
-    <div className={`w-[220px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
-      selected ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+    <div className={`relative w-[220px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
     }`}>
+      <ExecutionStatusBadge id={id} />
       <Handle 
         type="target" 
         position={Position.Left} 
@@ -199,15 +252,18 @@ export const SetNode = ({ data, selected }: any) => {
 }
 
 // IF Node (Logic Splitter)
-export const IfNode = ({ data, selected }: any) => {
+export const IfNode = ({ id, data, selected }: any) => {
   const value1 = data?.config?.value1 || 'value1'
   const condition = data?.config?.condition || 'equals'
   const value2 = data?.config?.value2 || 'value2'
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
 
   return (
-    <div className={`w-[230px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
-      selected ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+    <div className={`relative w-[230px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
     }`}>
+      <ExecutionStatusBadge id={id} />
       <Handle 
         type="target" 
         position={Position.Left} 
@@ -288,11 +344,15 @@ export const IfNode = ({ data, selected }: any) => {
 }
 
 // Switch Node (Logic Router)
-export const SwitchNode = ({ data, selected }: any) => {
+export const SwitchNode = ({ id, data, selected }: any) => {
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
+
   return (
-    <div className={`w-[230px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
-      selected ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+    <div className={`relative w-[230px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
     }`}>
+      <ExecutionStatusBadge id={id} />
       <Handle 
         type="target" 
         position={Position.Left} 
@@ -367,13 +427,16 @@ export const SwitchNode = ({ data, selected }: any) => {
 }
 
 // Delay Node (Logic Waiter)
-export const DelayNode = ({ data, selected }: any) => {
+export const DelayNode = ({ id, data, selected }: any) => {
   const duration = data?.config?.duration || 5
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
 
   return (
-    <div className={`w-[220px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
-      selected ? 'border-sky-500 ring-2 ring-sky-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+    <div className={`relative w-[220px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-sky-500 ring-2 ring-sky-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
     }`}>
+      <ExecutionStatusBadge id={id} />
       <Handle 
         type="target" 
         position={Position.Left} 

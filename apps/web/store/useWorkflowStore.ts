@@ -57,11 +57,17 @@ interface WorkflowState {
   credentialsList: any[]
   executionsList: any[]
   selectedExecution: any | null
+  activeExecutionId: string | null
+  nodeExecutionStates: Record<string, 'IDLE' | 'RUNNING' | 'SUCCESS' | 'FAILED'>
   isExecutionsDrawerOpen: boolean
   isExecuting: boolean
 
   setExecutionsDrawerOpen: (open: boolean) => void
   setSelectedExecution: (exec: any | null) => void
+  setActiveExecutionId: (id: string | null) => void
+  setNodeExecutionState: (nodeId: string, state: 'IDLE' | 'RUNNING' | 'SUCCESS' | 'FAILED') => void
+  resetNodeExecutionStates: () => void
+  
   // API Integration Actions
   loadWorkflow: (id: string, token: string, workspaceId: string) => Promise<void>
   saveWorkflow: (token: string, workspaceId: string) => Promise<void>
@@ -87,6 +93,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   credentialsList: [],
   executionsList: [],
   selectedExecution: null,
+  activeExecutionId: null,
+  nodeExecutionStates: {},
   isCredentialsModalOpen: false,
   isExecutionsDrawerOpen: false,
   isExecuting: false,
@@ -94,6 +102,14 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   setExecutionsDrawerOpen: (open) => set({ isExecutionsDrawerOpen: open }),
   setSelectedExecution: (exec) => set({ selectedExecution: exec }),
+  setActiveExecutionId: (id) => set({ activeExecutionId: id }),
+  setNodeExecutionState: (nodeId, state) => set((prev) => ({
+    nodeExecutionStates: {
+      ...prev.nodeExecutionStates,
+      [nodeId]: state
+    }
+  })),
+  resetNodeExecutionStates: () => set({ nodeExecutionStates: {} }),
   
   history: [],
   historyIndex: -1,
@@ -482,8 +498,10 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       }
 
       const execLog = await res.json()
+      get().resetNodeExecutionStates()
       set({ 
         isExecuting: false,
+        activeExecutionId: execLog.id,
         isExecutionsDrawerOpen: true,
         selectedExecution: execLog
       })
