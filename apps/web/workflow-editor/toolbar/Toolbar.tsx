@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
-import { Undo2, Redo2, Save, CloudLightning, Power, Key, Sun, Moon } from 'lucide-react'
+import { Undo2, Redo2, Save, CloudLightning, Power, Key, Sun, Moon, Play, History } from 'lucide-react'
 
 export default function Toolbar() {
   const {
@@ -17,7 +17,10 @@ export default function Toolbar() {
     toggleActivation,
     setCredentialsModalOpen,
     theme,
-    setTheme
+    setTheme,
+    isExecuting,
+    executeWorkflow,
+    setExecutionsDrawerOpen
   } = useWorkflowStore()
 
   const [token, setToken] = useState<string | null>(null)
@@ -41,6 +44,11 @@ export default function Toolbar() {
   const handleToggleActive = async () => {
     if (!token || !workspaceId) return
     await toggleActivation(token, workspaceId)
+  }
+
+  const handleExecute = async () => {
+    if (!token || !workspaceId) return
+    await executeWorkflow(token, workspaceId)
   }
 
   const canUndo = historyIndex > 0
@@ -106,6 +114,16 @@ export default function Toolbar() {
           Credentials
         </button>
 
+        {/* Executions Logs Drawer Button */}
+        <button
+          onClick={() => setExecutionsDrawerOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition"
+          title="Inspect execution logs history"
+        >
+          <History size={15} />
+          Executions
+        </button>
+
         {/* Save Draft */}
         <button
           onClick={handleSave}
@@ -125,6 +143,17 @@ export default function Toolbar() {
         >
           <CloudLightning size={15} />
           Publish Version
+        </button>
+
+        {/* Run Test Trigger */}
+        <button
+          onClick={handleExecute}
+          disabled={isExecuting || !activeVersionId}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm disabled:opacity-50 transition"
+          title={!activeVersionId ? 'Publish a version snapshot first to test execution.' : 'Trigger workflow run'}
+        >
+          <Play size={14} className={isExecuting ? 'animate-spin' : ''} />
+          {isExecuting ? 'Running...' : 'Run Test'}
         </button>
 
         {/* Toggle Activation */}
