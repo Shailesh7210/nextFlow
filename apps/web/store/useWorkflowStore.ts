@@ -55,12 +55,21 @@ interface WorkflowState {
   setCredentialsModalOpen: (open: boolean) => void
 
   credentialsList: any[]
+  executionsList: any[]
+  selectedExecution: any | null
+  isExecutionsDrawerOpen: boolean
+  isExecuting: boolean
+
+  setExecutionsDrawerOpen: (open: boolean) => void
+  setSelectedExecution: (exec: any | null) => void
   // API Integration Actions
   loadWorkflow: (id: string, token: string, workspaceId: string) => Promise<void>
   saveWorkflow: (token: string, workspaceId: string) => Promise<void>
   publishWorkflow: (token: string, workspaceId: string) => Promise<void>
   toggleActivation: (token: string, workspaceId: string) => Promise<void>
   loadCredentials: (token: string, workspaceId: string) => Promise<void>
+  loadExecutions: (token: string, workspaceId: string) => Promise<void>
+  executeWorkflow: (token: string, workspaceId: string, inputData?: any) => Promise<void>
 }
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
@@ -76,8 +85,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   isSaving: false,
   error: null,
   credentialsList: [],
+  executionsList: [],
+  selectedExecution: null,
   isCredentialsModalOpen: false,
+  isExecutionsDrawerOpen: false,
+  isExecuting: false,
   theme: 'dark',
+
+  setExecutionsDrawerOpen: (open) => set({ isExecutionsDrawerOpen: open }),
+  setSelectedExecution: (exec) => set({ selectedExecution: exec }),
   
   history: [],
   historyIndex: -1,
@@ -426,5 +442,56 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         set({ credentialsList: creds })
       }
     } catch (err) {}
+  },
+
+  loadExecutions: async (token, workspaceId) => {
+    const { workflowId } = get()
+    if (!workflowId) return
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/workflows/${workflowId}/executions`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Workspace-ID': workspaceId
+        }
+      })
+      if (res.ok) {
+        const execs = await res.json()
+        set({ executionsList: execs })
+      }
+    } catch (err) {}
+  },
+
+  executeWorkflow: async (token, workspaceId, inputData = {}) => {
+    const { workflowId, loadExecutions } = get()
+    if (!workflowId) return
+    set({ isExecuting: true, error: null })
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/workflows/${workflowId}/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-Workspace-ID': workspaceId
+        },
+        body: JSON.stringify(inputData)
+      })
+
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.detail || 'Execution trigger failed')
+      }
+
+      const execLog = await res.json()
+      set({ 
+        isExecuting: false,
+        isExecutionsDrawerOpen: true,
+        selectedExecution: execLog
+      })
+
+      // Refresh executions list
+      await loadExecutions(token, workspaceId)
+    } catch (err: any) {
+      set({ error: err.message, isExecuting: false })
+    }
   }
 }))

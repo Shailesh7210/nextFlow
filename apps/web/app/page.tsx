@@ -8,6 +8,7 @@ import ConfigPanel from '@/workflow-editor/config-panel/ConfigPanel'
 import Toolbar from '@/workflow-editor/toolbar/Toolbar'
 import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key, Globe, Sliders, Sun, Moon } from 'lucide-react'
 import CredentialsModal from '@/components/CredentialsModal'
+import ExecutionHistoryModal from '@/components/ExecutionHistoryModal'
 
 const BACKEND_URL = 'http://localhost:8000'
 
@@ -519,6 +520,7 @@ export default function Home() {
         <ConfigPanel />
       </div>
       <CredentialsModal />
+      <ExecutionHistoryModal />
     </div>
   )
 }
