@@ -9,6 +9,7 @@ import Toolbar from '@/workflow-editor/toolbar/Toolbar'
 import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key, Globe, Sliders, Sun, Moon } from 'lucide-react'
 import CredentialsModal from '@/components/CredentialsModal'
 import ExecutionHistoryModal from '@/components/ExecutionHistoryModal'
+import TemplatesModal from '@/components/TemplatesModal'
 
 const BACKEND_URL = 'http://localhost:8000'
 
@@ -38,6 +39,7 @@ export default function Home() {
   const [workflowsList, setWorkflowsList] = useState<any[]>([])
   const [newWorkflowName, setNewWorkflowName] = useState('')
   const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false)
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false)
 
   // Check auth on load
   useEffect(() => {
@@ -500,7 +502,7 @@ export default function Home() {
   // 3. Workflow Editor Screen
   return (
     <div className="w-screen h-screen bg-slate-950 flex flex-col font-sans overflow-hidden text-slate-200">
-      <Toolbar />
+      <Toolbar onOpenTemplates={() => setIsTemplatesOpen(true)} />
       <div className="flex-1 flex overflow-hidden">
         <NodePalette />
         <main className="flex-1 h-full bg-slate-950 overflow-hidden relative">
@@ -521,6 +523,7 @@ export default function Home() {
       </div>
       <CredentialsModal />
       <ExecutionHistoryModal />
+      <TemplatesModal isOpen={isTemplatesOpen} onClose={() => setIsTemplatesOpen(false)} />
     </div>
   )
 }
