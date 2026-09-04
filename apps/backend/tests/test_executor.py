@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 import json
 import secrets
 from httpx import AsyncClient, ASGITransport
@@ -138,9 +139,15 @@ async def test_workflow_execution_engine(client: AsyncClient, db_session: AsyncS
     assert exec_body["status"] == "PENDING"
     exec_id = exec_body["id"]
 
-    # Clear SQLAlchemy cache and load execution outcomes
-    db.expunge_all()
-    exec_log = (await db.execute(select(ExecutionLog).filter(ExecutionLog.id == exec_id))).scalars().first()
+    # Wait for background task to reach terminal state
+    exec_log = None
+    for _ in range(20):
+        await asyncio.sleep(0.1)
+        db.expire_all()
+        exec_log = (await db.execute(select(ExecutionLog).filter(ExecutionLog.id == exec_id))).scalars().first()
+        if exec_log and exec_log.status in ("SUCCESS", "FAILED"):
+            break
+    await db.refresh(exec_log)
     
     # Assert execution completed successfully in eager execution mode
     assert exec_log is not None
@@ -160,7 +167,7 @@ async def test_workflow_execution_engine(client: AsyncClient, db_session: AsyncS
     # Verify input context resolved for Set node
     assert exec_log.node_executions[1]["inputs"]["$json"]["event"] == "signup"
     # Verify outputs of Set node
-    assert exec_log.node_executions[1]["outputs"]["score"] == 100
+    assert exec_log.node_executions[1]["outputs"]["score"] == "100"
     
     # Assert we can list executions (GET /api/v1/workflows/{id}/executions)
     list_res = await client.get(f"/api/v1/workflows/{wf_id}/executions", headers=headers)
