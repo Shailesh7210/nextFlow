@@ -206,6 +206,71 @@ class WorkflowExecutor:
                     "body": resp_data
                 }
 
+        elif node_type == "ai-prompt":
+            model = config.get("model", "gpt-4o")
+            system_prompt = self.resolve_value(config.get("system_prompt", "You are a helpful AI assistant."), context)
+            user_prompt = self.resolve_value(config.get("user_prompt", "Hello!"), context)
+            temperature = float(config.get("temperature", 0.7))
+
+            headers = {"Content-Type": "application/json"}
+            api_key = None
+
+            # Resolve bound credential if present
+            credential_id = node.get("data", {}).get("credentialId")
+            if credential_id:
+                stmt = select(Credential).filter(Credential.id == credential_id)
+                res = await self.db.execute(stmt)
+                cred = res.scalars().first()
+                if cred:
+                    decrypted_payload = json.loads(decrypt_data(cred.encrypted_data))
+                    api_key = decrypted_payload.get("api_key") or decrypted_payload.get("token") or decrypted_payload.get("secret")
+
+            if api_key:
+                if " " in api_key:
+                    headers["Authorization"] = api_key
+                else:
+                    headers["Authorization"] = f"Bearer {api_key}"
+
+            logger.info(f"Executing AI Prompt node {node.get('id')} (model={model})...")
+
+            # Fallback/simulation response if no credential attached
+            if not headers.get("Authorization"):
+                simulated_response = f"[NexFlow AI ({model})]: Processed prompt: '{user_prompt}'"
+                return {
+                    "model": model,
+                    "response": simulated_response,
+                    "usage": {"prompt_tokens": len(str(user_prompt).split()), "completion_tokens": len(simulated_response.split())}
+                }
+
+            async with httpx.AsyncClient(timeout=45.0) as client:
+                resp = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers=headers,
+                    json={
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": str(system_prompt)},
+                            {"role": "user", "content": str(user_prompt)}
+                        ],
+                        "temperature": temperature
+                    }
+                )
+                if resp.status_code == 200:
+                    resp_json = resp.json()
+                    choices = resp_json.get("choices", [])
+                    content = choices[0].get("message", {}).get("content", "") if choices else ""
+                    return {
+                        "model": model,
+                        "response": content,
+                        "usage": resp_json.get("usage", {})
+                    }
+                else:
+                    return {
+                        "model": model,
+                        "response": f"AI API response {resp.status_code}: {resp.text}",
+                        "error": resp.text
+                    }
+
         raise ValueError(f"Unknown node type: {node_type}")
 
     async def execute_workflow(self, execution_log_id: str) -> None:

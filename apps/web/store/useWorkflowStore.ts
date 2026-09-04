@@ -76,6 +76,7 @@ interface WorkflowState {
   loadCredentials: (token: string, workspaceId: string) => Promise<void>
   loadExecutions: (token: string, workspaceId: string) => Promise<void>
   executeWorkflow: (token: string, workspaceId: string, inputData?: any) => Promise<void>
+  importWorkflowJson: (jsonString: string) => boolean
 }
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
@@ -194,6 +195,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       config = { duration: 5 }
     } else if (type === 'switch') {
       config = { rules: [] }
+    } else if (type === 'ai-prompt') {
+      config = { model: 'gpt-4o', system_prompt: 'You are a helpful AI assistant.', user_prompt: 'Summarize: {{ $json.text }}', temperature: 0.7 }
     }
 
     const newNode: Node = {
@@ -510,6 +513,26 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       await loadExecutions(token, workspaceId)
     } catch (err: any) {
       set({ error: err.message, isExecuting: false })
+    }
+  },
+
+  importWorkflowJson: (jsonString: string) => {
+    try {
+      const parsed = JSON.parse(jsonString)
+      const importedNodes = Array.isArray(parsed.nodes) ? parsed.nodes : []
+      const importedEdges = Array.isArray(parsed.edges) ? parsed.edges : []
+
+      set({
+        nodes: importedNodes,
+        edges: importedEdges,
+        selectedNodeId: null,
+        history: [{ nodes: importedNodes, edges: importedEdges }],
+        historyIndex: 0
+      })
+      return true
+    } catch (err) {
+      console.error('Failed to import workflow JSON:', err)
+      return false
     }
   }
 }))

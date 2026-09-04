@@ -292,6 +292,86 @@ export default function ConfigPanel() {
           </div>
         )}
 
+        {/* AI Prompt / LLM Form */}
+        {type === 'ai-prompt' && (
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                API Key Credential
+              </label>
+              <select
+                value={(selectedNode.data as any).credentialId || ''}
+                onChange={(e) => handleSelectCredential(e.target.value || null)}
+                className="w-full text-[13px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+              >
+                <option value="">Simulation Mode (No Key)</option>
+                {credentialsList.map((cred: any) => (
+                  <option key={cred.id} value={cred.id}>
+                    {cred.name} ({cred.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                AI Model
+              </label>
+              <select
+                value={config.model || 'gpt-4o'}
+                onChange={(e) => handleUpdate('model', e.target.value)}
+                className="w-full text-[13px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+              >
+                <option value="gpt-4o">OpenAI GPT-4o</option>
+                <option value="gpt-3.5-turbo">OpenAI GPT-3.5 Turbo</option>
+                <option value="gemini-1.5-pro">Google Gemini 1.5 Pro</option>
+                <option value="claude-3-5-sonnet">Anthropic Claude 3.5 Sonnet</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                System Persona Prompt
+              </label>
+              <textarea
+                value={config.system_prompt || ''}
+                rows={2}
+                placeholder="You are a helpful AI assistant."
+                onChange={(e) => handleUpdate('system_prompt', e.target.value)}
+                className="w-full text-[12px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                User Prompt Template
+              </label>
+              <textarea
+                value={config.user_prompt || ''}
+                rows={4}
+                placeholder="Summarize the following: {{ $json.body.message }}"
+                onChange={(e) => handleUpdate('user_prompt', e.target.value)}
+                className="w-full text-[12px] font-mono px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+              />
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 flex items-center gap-1 leading-normal">
+                <HelpCircle size={10} className="shrink-0" />
+                <span>Supports template tags: <code>{"{{ $json.key }}"}</code></span>
+              </p>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Temperature ({config.temperature ?? 0.7})
+              </label>
+              <input
+                type="range"
+                min="0.0"
+                max="1.0"
+                step="0.1"
+                value={config.temperature ?? 0.7}
+                onChange={(e) => handleUpdate('temperature', parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Webhook Form */}
         {type === 'webhook' && (
           <div className="flex flex-col gap-4">

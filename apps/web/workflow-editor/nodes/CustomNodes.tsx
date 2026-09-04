@@ -1,6 +1,6 @@
 import React from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react'
 import { useWorkflowStore } from '../../store/useWorkflowStore'
 
 interface NodeHeaderProps {
@@ -483,6 +483,72 @@ export const DelayNode = ({ id, data, selected }: any) => {
   )
 }
 
+// AI Prompt / LLM Node
+export const AiPromptNode = ({ id, data, selected }: any) => {
+  const model = data?.config?.model || 'gpt-4o'
+  const credentialId = data?.credentialId
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
+
+  return (
+    <div className={`relative w-[240px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
+    }`}>
+      <ExecutionStatusBadge id={id} />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input" 
+        style={{
+          top: '50%',
+          left: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#475569',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+      
+      <NodeHeader
+        icon={<Sparkles size={16} />}
+        title={data.label || "AI Prompt / LLM"}
+        subtitle="LLM Intelligence"
+        colorClass="bg-indigo-600"
+        selected={selected}
+      />
+
+      <div className="mt-3 flex flex-col gap-2">
+        <div className="flex items-center justify-between text-[10px]">
+          <span className="text-slate-400 font-medium">Model:</span>
+          <span className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-900 leading-none">{model}</span>
+        </div>
+        {credentialId && (
+          <div className="flex items-center gap-1 text-[9px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-150 dark:border-indigo-900 py-0.5 px-2 rounded-md w-fit">
+            <Key size={10} />
+            <span>API Key Set</span>
+          </div>
+        )}
+      </div>
+
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="output" 
+        style={{
+          top: '50%',
+          right: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#4f46e5',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+    </div>
+  )
+}
+
 export const nodeTypes = {
   'webhook': WebhookNode,
   'http-request': HttpRequestNode,
@@ -490,4 +556,5 @@ export const nodeTypes = {
   'if': IfNode,
   'switch': SwitchNode,
   'delay': DelayNode,
+  'ai-prompt': AiPromptNode,
 }
