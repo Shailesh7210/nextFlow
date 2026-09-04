@@ -170,3 +170,7 @@ DS_Store
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# PDF documentation & planning files
+*.pdf
+
