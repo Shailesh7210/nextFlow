@@ -318,6 +318,37 @@ class WorkflowExecutor:
             )
             return sub_output
 
+        elif node_type == "loop-items":
+            items_path = config.get("items_path", "$json.items")
+            resolved_items = self.resolve_value(items_path, context)
+
+            if resolved_items is None and isinstance(context.get("$json"), list):
+                resolved_items = context["$json"]
+            elif resolved_items is None and isinstance(context.get("$json"), dict):
+                resolved_items = context["$json"].get("items") or context["$json"].get("data")
+
+            if not isinstance(resolved_items, list):
+                if resolved_items is not None:
+                    resolved_items = [resolved_items]
+                else:
+                    resolved_items = []
+
+            max_iterations = int(config.get("max_iterations", 100))
+            items_to_process = resolved_items[:max_iterations]
+
+            processed_results = []
+            for idx, item in enumerate(items_to_process):
+                processed_results.append({
+                    "index": idx,
+                    "item": item
+                })
+
+            node["_active_branch"] = "done"
+            return {
+                "items": processed_results,
+                "total_processed": len(processed_results)
+            }
+
         raise ValueError(f"Unknown node type: {node_type}")
 
     async def run_graph_traversal(

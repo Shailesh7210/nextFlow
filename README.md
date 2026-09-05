@@ -18,6 +18,8 @@ NexFlow is an n8n-inspired, self-hosted visual workflow automation platform. Bui
 - **Phase 10: AI / LLM Integration & Templates Hub** — `ai-prompt` node supporting OpenAI/Gemini models, pre-built templates gallery, and JSON Export/Import.
 - **Phase 11: Enterprise Dashboard & Analytics** — Workspace analytics summary API (`GET /api/v1/workflows/analytics/summary`), stat cards, recent runs table, and header navigation tabs.
 - **Phase 12: Production Readiness & Docker Service Stack** — One-command multi-container Docker deployment (`docker-compose.yml`), multi-stage frontend Dockerfile, and component health monitoring (`/health/detailed`).
+- **Phase 13: Sub-Workflow Invocation Node & Graph Nesting Engine** — Sub-workflow node (`execute-workflow`), nested child graph traversal, output payload propagation, and circular recursion depth safeguard.
+- **Phase 14: Looping & Array Processing Node & Batch Execution Engine** — Array iteration node (`loop-items`), dynamic payload resolution (`{{ $json.items }}`), iteration cap limits, and aggregated output batching.
 
 ---
 

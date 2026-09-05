@@ -423,6 +423,44 @@ export default function ConfigPanel() {
             </div>
           </div>
         )}
+
+        {/* Loop Items Form */}
+        {type === 'loop-items' && (
+          <div className="flex flex-col gap-4">
+            <div className="p-3 bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-900/40 rounded-lg text-violet-750 dark:text-violet-300 text-[12px] leading-relaxed">
+              <span className="font-semibold text-violet-700 dark:text-violet-400">Loop Items:</span> Iterates through an array expression and passes each item downstream, aggregating processed results.
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Items Array Expression
+              </label>
+              <input
+                type="text"
+                value={config.items_path || '{{ $json.items }}'}
+                placeholder="e.g. {{ $json.items }} or $json.data"
+                onChange={(e) => handleUpdate('items_path', e.target.value)}
+                className="w-full text-[12px] font-mono px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-violet-500"
+              />
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 flex items-center gap-1 leading-normal">
+                <HelpCircle size={10} className="shrink-0" />
+                <span>Specify variable path resolving to array list</span>
+              </p>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Max Iterations Limit ({config.max_iterations ?? 100})
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={1000}
+                value={config.max_iterations ?? 100}
+                onChange={(e) => handleUpdate('max_iterations', parseInt(e.target.value) || 100)}
+                className="w-full text-[12px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-violet-500 font-medium"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   )
