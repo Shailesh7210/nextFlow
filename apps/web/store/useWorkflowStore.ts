@@ -55,6 +55,7 @@ interface WorkflowState {
   setCredentialsModalOpen: (open: boolean) => void
 
   credentialsList: any[]
+  workflowsList: any[]
   executionsList: any[]
   selectedExecution: any | null
   activeExecutionId: string | null
@@ -74,6 +75,7 @@ interface WorkflowState {
   publishWorkflow: (token: string, workspaceId: string) => Promise<void>
   toggleActivation: (token: string, workspaceId: string) => Promise<void>
   loadCredentials: (token: string, workspaceId: string) => Promise<void>
+  loadWorkflows: (token: string, workspaceId: string) => Promise<void>
   loadExecutions: (token: string, workspaceId: string) => Promise<void>
   executeWorkflow: (token: string, workspaceId: string, inputData?: any) => Promise<void>
   importWorkflowJson: (jsonString: string) => boolean
@@ -92,6 +94,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   isSaving: false,
   error: null,
   credentialsList: [],
+  workflowsList: [],
   executionsList: [],
   selectedExecution: null,
   activeExecutionId: null,
@@ -197,6 +200,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       config = { rules: [] }
     } else if (type === 'ai-prompt') {
       config = { model: 'gpt-4o', system_prompt: 'You are a helpful AI assistant.', user_prompt: 'Summarize: {{ $json.text }}', temperature: 0.7 }
+    } else if (type === 'execute-workflow') {
+      config = { target_workflow_id: '' }
     }
 
     const newNode: Node = {
@@ -459,6 +464,21 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       if (res.ok) {
         const creds = await res.json()
         set({ credentialsList: creds })
+      }
+    } catch (err) {}
+  },
+
+  loadWorkflows: async (token, workspaceId) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/workflows`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Workspace-ID': workspaceId
+        }
+      })
+      if (res.ok) {
+        const wfs = await res.json()
+        set({ workflowsList: wfs })
       }
     } catch (err) {}
   },

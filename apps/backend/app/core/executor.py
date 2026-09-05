@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.credential import Credential
 from app.models.execution_log import ExecutionLog
+from app.models.workflow import Workflow
 from app.models.workflow_version import WorkflowVersion
 from app.core.crypto import decrypt_data
 from app.db.redis import redis_client
@@ -271,7 +272,172 @@ class WorkflowExecutor:
                         "error": resp.text
                     }
 
+        elif node_type == "execute-workflow":
+            target_workflow_id = config.get("target_workflow_id") or config.get("workflow_id")
+            if not target_workflow_id:
+                raise ValueError("Sub-workflow node missing 'target_workflow_id' configuration.")
+            
+            target_workflow_id = str(self.resolve_value(target_workflow_id, context))
+            
+            # Recursion depth & circular check
+            current_depth = context.get("_depth", 0)
+            visited_workflows = context.get("_visited_workflows", set())
+            
+            if current_depth >= 10:
+                raise ValueError("Maximum sub-workflow nesting depth (10) exceeded.")
+            if target_workflow_id in visited_workflows:
+                raise ValueError(f"Circular sub-workflow invocation detected for workflow '{target_workflow_id}'.")
+            
+            # Fetch target workflow & active version snapshot
+            stmt_wf = select(Workflow).filter(Workflow.id == target_workflow_id)
+            res_wf = await self.db.execute(stmt_wf)
+            wf = res_wf.scalars().first()
+
+            if not wf or not wf.active_version_id:
+                raise ValueError(f"Sub-workflow '{target_workflow_id}' does not exist or has no active published version snapshot.")
+
+            stmt_v = select(WorkflowVersion).filter(WorkflowVersion.id == wf.active_version_id)
+            res_v = await self.db.execute(stmt_v)
+            sub_version = res_v.scalars().first()
+
+            if not sub_version:
+                raise ValueError(f"Active version snapshot for sub-workflow '{target_workflow_id}' not found.")
+            
+            # Initialize sub-workflow context inheriting current $json payload
+            sub_context = {
+                "$json": context.get("$json", {}).copy() if isinstance(context.get("$json"), dict) else context.get("$json"),
+                "$node": {},
+                "_depth": current_depth + 1,
+                "_visited_workflows": visited_workflows | {target_workflow_id}
+            }
+            
+            sub_output = await self.run_graph_traversal(
+                nodes=sub_version.nodes,
+                connections=sub_version.connections,
+                context=sub_context
+            )
+            return sub_output
+
         raise ValueError(f"Unknown node type: {node_type}")
+
+    async def run_graph_traversal(
+        self,
+        nodes: List[Dict[str, Any]],
+        connections: List[Dict[str, Any]],
+        context: Dict[str, Any],
+        execution_log_id: Optional[str] = None,
+        node_executions: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """
+        Runs graph traversal for nodes and connections, handling branching and node execution.
+        """
+        nodes_by_id = {n["id"]: n for n in nodes}
+        outgoing_edges: Dict[str, List[Dict[str, Any]]] = {}
+        incoming_counts: Dict[str, int] = {n["id"]: 0 for n in nodes}
+        for conn in connections:
+            source = conn.get("source")
+            target = conn.get("target")
+            if source and target:
+                if source not in outgoing_edges:
+                    outgoing_edges[source] = []
+                outgoing_edges[source].append(conn)
+                incoming_counts[target] += 1
+
+        start_node_id = None
+        for n in nodes:
+            if n.get("type") == "webhook":
+                start_node_id = n["id"]
+                break
+        
+        if not start_node_id:
+            for n_id, count in incoming_counts.items():
+                if count == 0:
+                    start_node_id = n_id
+                    break
+
+        if not start_node_id and nodes:
+            start_node_id = nodes[0]["id"]
+
+        if not start_node_id:
+            return context.get("$json", {})
+
+        visited = set()
+        queue = [start_node_id]
+
+        while queue:
+            node_id = queue.pop(0)
+            if node_id in visited:
+                continue
+            visited.add(node_id)
+
+            node = nodes_by_id.get(node_id)
+            if not node:
+                continue
+
+            node_started = datetime.now(timezone.utc)
+            node_type = node.get("type", "")
+            logger.info(f"Executing node {node_id} ({node_type})...")
+
+            if execution_log_id:
+                await self.publish_event(execution_log_id, {
+                    "event": "NODE_STARTED",
+                    "execution_id": execution_log_id,
+                    "node_id": node_id,
+                    "node_type": node_type,
+                    "started_at": node_started.isoformat()
+                })
+
+            # Capture inputs passed into node
+            node_inputs = {
+                "$json": context["$json"].copy() if isinstance(context.get("$json"), dict) else context.get("$json"),
+                "$node": {k: (v.copy() if isinstance(v, dict) else v) for k, v in context.get("$node", {}).items()}
+            }
+
+            # Run node
+            node_output = await self.execute_node(node, context)
+
+            # Record results
+            context["$json"] = node_output
+            if "$node" not in context:
+                context["$node"] = {}
+            context["$node"][node_id] = node_output
+            finished_at_iso = datetime.now(timezone.utc).isoformat()
+
+            if execution_log_id and node_executions is not None:
+                node_executions.append({
+                    "node_id": node_id,
+                    "node_type": node_type,
+                    "status": "SUCCESS",
+                    "started_at": node_started.isoformat(),
+                    "finished_at": finished_at_iso,
+                    "inputs": node_inputs,
+                    "outputs": node_output
+                })
+
+                await self.publish_event(execution_log_id, {
+                    "event": "NODE_COMPLETED",
+                    "execution_id": execution_log_id,
+                    "node_id": node_id,
+                    "node_type": node_type,
+                    "outputs": node_output,
+                    "finished_at": finished_at_iso
+                })
+
+            # Determine next branches to visit
+            edges = outgoing_edges.get(node_id, [])
+            active_branch = node.get("_active_branch")
+            
+            for edge in edges:
+                target = edge.get("target")
+                if active_branch:
+                    source_handle = edge.get("sourceHandle")
+                    if source_handle != active_branch:
+                        continue
+                
+                if target and target not in visited:
+                    queue.append(target)
+
+        return context.get("$json", {})
 
     async def execute_workflow(self, execution_log_id: str) -> None:
         """

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
-import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Sparkles } from 'lucide-react'
+import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Sparkles, Network } from 'lucide-react'
 
 export default function NodePalette() {
   const { addNode } = useWorkflowStore()
@@ -10,6 +10,12 @@ export default function NodePalette() {
       category: 'Triggers',
       nodes: [
         { type: 'webhook', label: 'Webhook Trigger', icon: <Webhook size={16} />, color: 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-900/30' }
+      ]
+    },
+    {
+      category: 'Sub-Workflows',
+      nodes: [
+        { type: 'execute-workflow', label: 'Sub-Workflow', icon: <Network size={16} />, color: 'bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-900/60 hover:bg-teal-100 dark:hover:bg-teal-900/30' }
       ]
     },
     {

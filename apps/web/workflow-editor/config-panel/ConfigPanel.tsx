@@ -10,7 +10,9 @@ export default function ConfigPanel() {
     updateNodeConfig,
     setNodes,
     credentialsList,
-    loadCredentials
+    loadCredentials,
+    workflowsList,
+    loadWorkflows
   } = useWorkflowStore()
 
   React.useEffect(() => {
@@ -18,8 +20,9 @@ export default function ConfigPanel() {
     const workspaceId = localStorage.getItem('workspace_id')
     if (token && workspaceId) {
       loadCredentials(token, workspaceId)
+      loadWorkflows(token, workspaceId)
     }
-  }, [loadCredentials, selectedNodeId])
+  }, [loadCredentials, loadWorkflows, selectedNodeId])
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId)
 
@@ -377,6 +380,46 @@ export default function ConfigPanel() {
           <div className="flex flex-col gap-4">
             <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/40 rounded-lg text-blue-750 dark:text-blue-300 text-[12px] leading-relaxed">
               <span className="font-semibold text-blue-700 dark:text-blue-450">Inbound trigger:</span> This node automatically creates a unique webhook URL on publishing. Send POST requests to invoke this workflow flow.
+            </div>
+          </div>
+        )}
+
+        {/* Sub-Workflow Form */}
+        {type === 'execute-workflow' && (
+          <div className="flex flex-col gap-4">
+            <div className="p-3 bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-900/40 rounded-lg text-teal-750 dark:text-teal-300 text-[12px] leading-relaxed">
+              <span className="font-semibold text-teal-700 dark:text-teal-400">Sub-Workflow:</span> Select a published workflow snapshot from your active workspace to execute inline as a nested child node.
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Select Target Sub-Workflow
+              </label>
+              <select
+                value={config.target_workflow_id || ''}
+                onChange={(e) => handleUpdate('target_workflow_id', e.target.value)}
+                className="w-full text-[13px] px-3 py-2 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-teal-500 font-medium"
+              >
+                <option value="">-- Choose Published Workflow --</option>
+                {workflowsList
+                  .filter((wf: any) => wf.id !== useWorkflowStore.getState().workflowId)
+                  .map((wf: any) => (
+                    <option key={wf.id} value={wf.id}>
+                      {wf.name} {wf.active_version_id ? '(Published)' : '(Draft)'}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Or Workflow ID / Tag Template
+              </label>
+              <input
+                type="text"
+                value={config.target_workflow_id || ''}
+                placeholder="e.g. wfs_123456789 or {{ $json.child_id }}"
+                onChange={(e) => handleUpdate('target_workflow_id', e.target.value)}
+                className="w-full text-[12px] font-mono px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-teal-500"
+              />
             </div>
           </div>
         )}
