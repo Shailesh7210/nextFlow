@@ -38,12 +38,12 @@ services:
       context: ./apps/backend
       dockerfile: Dockerfile
     container_name: nexflow_backend
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     restart: always
     ports:
       - "8000:8000"
     volumes:
       - ./apps/backend:/app
-      # Prevents local .venv or node_modules from being overwritten inside the container if mounted
       - /app/.venv
     env_file:
       - .env
@@ -103,6 +103,19 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: nexflow_web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
