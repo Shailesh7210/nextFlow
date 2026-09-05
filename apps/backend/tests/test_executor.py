@@ -174,3 +174,61 @@ async def test_workflow_execution_engine(client: AsyncClient, db_session: AsyncS
     assert list_res.status_code == 200
     assert len(list_res.json()) == 1
     assert list_res.json()[0]["id"] == exec_id
+
+
+@pytest.mark.asyncio
+async def test_sub_workflow_execution(client: AsyncClient, db_session: AsyncSession, run_celery_eager):
+    email = get_random_email()
+    password = "pass123password"
+    db = db_session
+
+    reg_res = await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+    assert reg_res.status_code == 201
+    headers = {"Authorization": f"Bearer {reg_res.json()['access_token']}"}
+
+    # 1. Create Child Sub-Workflow
+    child_nodes = [
+        {"id": "child-wh", "type": "webhook", "position": {"x": 0, "y": 0}, "data": {}},
+        {"id": "child-set", "type": "set", "position": {"x": 200, "y": 0}, "data": {"config": {"variable": "child_processed", "value": "true"}}}
+    ]
+    child_conns = [{"id": "c1", "source": "child-wh", "target": "child-set"}]
+    
+    child_wf_res = await client.post("/api/v1/workflows", json={"name": "Child Sub-Workflow", "nodes": child_nodes, "connections": child_conns}, headers=headers)
+    assert child_wf_res.status_code == 201
+    child_wf_id = child_wf_res.json()["id"]
+
+    # Publish Child Sub-Workflow
+    await client.post(f"/api/v1/workflows/{child_wf_id}/publish", headers=headers)
+
+    # 2. Create Parent Master Workflow
+    parent_nodes = [
+        {"id": "parent-wh", "type": "webhook", "position": {"x": 0, "y": 0}, "data": {}},
+        {"id": "parent-sub", "type": "execute-workflow", "position": {"x": 200, "y": 0}, "data": {"config": {"target_workflow_id": child_wf_id}}}
+    ]
+    parent_conns = [{"id": "p1", "source": "parent-wh", "target": "parent-sub"}]
+
+    parent_wf_res = await client.post("/api/v1/workflows", json={"name": "Parent Master Workflow", "nodes": parent_nodes, "connections": parent_conns}, headers=headers)
+    assert parent_wf_res.status_code == 201
+    parent_wf_id = parent_wf_res.json()["id"]
+
+    # Publish & Activate Parent Workflow
+    await client.post(f"/api/v1/workflows/{parent_wf_id}/publish", headers=headers)
+    await client.post(f"/api/v1/workflows/{parent_wf_id}/activate", headers=headers)
+
+    # 3. Execute Parent Workflow
+    exec_res = await client.post(f"/api/v1/workflows/{parent_wf_id}/execute", json={"msg": "hello from parent"}, headers=headers)
+    assert exec_res.status_code == 201
+    exec_id = exec_res.json()["id"]
+
+    exec_log = None
+    for _ in range(20):
+        await asyncio.sleep(0.1)
+        db.expire_all()
+        exec_log = (await db.execute(select(ExecutionLog).filter(ExecutionLog.id == exec_id))).scalars().first()
+        if exec_log and exec_log.status in ("SUCCESS", "FAILED"):
+            break
+
+    assert exec_log is not None
+    assert exec_log.status == "SUCCESS"
+    assert exec_log.output_data["child_processed"] == "true"
+

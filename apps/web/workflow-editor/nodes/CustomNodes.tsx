@@ -1,6 +1,6 @@
 import React from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react'
+import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles, Network } from 'lucide-react'
 import { useWorkflowStore } from '../../store/useWorkflowStore'
 
 interface NodeHeaderProps {
@@ -549,6 +549,66 @@ export const AiPromptNode = ({ id, data, selected }: any) => {
   )
 }
 
+// Sub-Workflow Invocation Node
+export const ExecuteWorkflowNode = ({ id, data, selected }: any) => {
+  const targetWorkflowId = data?.config?.target_workflow_id || ''
+  const workflowsList = useWorkflowStore((s) => s.workflowsList)
+  const targetWf = workflowsList.find((w) => w.id === targetWorkflowId)
+  const targetName = targetWf ? targetWf.name : (targetWorkflowId ? targetWorkflowId : 'Select Sub-Workflow...')
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
+
+  return (
+    <div className={`relative w-[240px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-teal-500 ring-2 ring-teal-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
+    }`}>
+      <ExecutionStatusBadge id={id} />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input" 
+        style={{
+          top: '50%',
+          left: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#475569',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+      
+      <NodeHeader
+        icon={<Network size={16} />}
+        title={data.label || "Sub-Workflow"}
+        subtitle="Child Workflow Runner"
+        colorClass="bg-teal-600"
+        selected={selected}
+      />
+
+      <div className="mt-3 flex flex-col gap-1 bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg text-[11px]">
+        <span className="text-slate-400 font-medium">Target Flow:</span>
+        <span className="font-semibold text-teal-700 dark:text-teal-400 truncate">{targetName}</span>
+      </div>
+
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="output" 
+        style={{
+          top: '50%',
+          right: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#0d9488',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+    </div>
+  )
+}
+
 export const nodeTypes = {
   'webhook': WebhookNode,
   'http-request': HttpRequestNode,
@@ -557,4 +617,5 @@ export const nodeTypes = {
   'switch': SwitchNode,
   'delay': DelayNode,
   'ai-prompt': AiPromptNode,
+  'execute-workflow': ExecuteWorkflowNode,
 }
