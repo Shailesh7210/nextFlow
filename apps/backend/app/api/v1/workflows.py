@@ -48,6 +48,72 @@ async def create_workflow(
     await db.refresh(new_workflow)
     return new_workflow
 
+@router.get("/analytics/summary")
+async def get_workspace_analytics_summary(
+    db: AsyncSession = Depends(get_db),
+    workspace = Depends(get_current_active_workspace)
+):
+    """
+    Retrieve workspace-wide aggregated execution analytics and health summary.
+    """
+    wf_query = select(Workflow).filter(Workflow.workspace_id == workspace.id)
+    wf_res = await db.execute(wf_query)
+    workflows = wf_res.scalars().all()
+    
+    total_workflows = len(workflows)
+    active_workflows = sum(1 for wf in workflows if wf.is_active)
+    workflow_ids = [wf.id for wf in workflows]
+
+    if not workflow_ids:
+        return {
+            "total_workflows": 0,
+            "active_workflows": 0,
+            "total_executions": 0,
+            "successful_executions": 0,
+            "failed_executions": 0,
+            "success_rate_percent": 0.0,
+            "recent_activity": []
+        }
+
+    exec_query = select(ExecutionLog).filter(
+        ExecutionLog.workflow_id.in_(workflow_ids)
+    ).order_by(ExecutionLog.created_at.desc())
+    exec_res = await db.execute(exec_query)
+    exec_logs = exec_res.scalars().all()
+
+    total_executions = len(exec_logs)
+    successful_executions = sum(1 for log in exec_logs if log.status == "SUCCESS")
+    failed_executions = sum(1 for log in exec_logs if log.status == "FAILED")
+    
+    success_rate = (successful_executions / total_executions * 100.0) if total_executions > 0 else 0.0
+    wf_name_map = {wf.id: wf.name for wf in workflows}
+
+    recent_activity = []
+    for log in exec_logs[:15]:
+        duration_sec = None
+        if log.started_at and log.finished_at:
+            duration_sec = round((log.finished_at - log.started_at).total_seconds(), 2)
+
+        recent_activity.append({
+            "id": log.id,
+            "workflow_id": log.workflow_id,
+            "workflow_name": wf_name_map.get(log.workflow_id, "Unknown Workflow"),
+            "status": log.status,
+            "trigger_type": log.trigger_type,
+            "created_at": log.created_at.isoformat() if log.created_at else None,
+            "duration_sec": duration_sec
+        })
+
+    return {
+        "total_workflows": total_workflows,
+        "active_workflows": active_workflows,
+        "total_executions": total_executions,
+        "successful_executions": successful_executions,
+        "failed_executions": failed_executions,
+        "success_rate_percent": round(success_rate, 1),
+        "recent_activity": recent_activity
+    }
+
 @router.get("/{id}", response_model=WorkflowOut)
 async def get_workflow(
     id: str,
