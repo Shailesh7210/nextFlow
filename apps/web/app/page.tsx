@@ -6,10 +6,11 @@ import NodePalette from '@/workflow-editor/toolbar/NodePalette'
 import WorkflowCanvas from '@/workflow-editor/canvas/WorkflowCanvas'
 import ConfigPanel from '@/workflow-editor/config-panel/ConfigPanel'
 import Toolbar from '@/workflow-editor/toolbar/Toolbar'
-import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key, Globe, Sliders, Sun, Moon } from 'lucide-react'
+import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key, Globe, Sliders, Sun, Moon, Activity } from 'lucide-react'
 import CredentialsModal from '@/components/CredentialsModal'
 import ExecutionHistoryModal from '@/components/ExecutionHistoryModal'
 import TemplatesModal from '@/components/TemplatesModal'
+import DashboardAnalytics from '@/components/DashboardAnalytics'
 
 const BACKEND_URL = 'http://localhost:8000'
 
@@ -40,6 +41,7 @@ export default function Home() {
   const [newWorkflowName, setNewWorkflowName] = useState('')
   const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false)
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'workflows' | 'analytics'>('workflows')
 
   // Check auth on load
   useEffect(() => {
@@ -394,10 +396,42 @@ export default function Home() {
     return (
       <div className="w-screen h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans text-slate-800 dark:text-slate-200 transition-colors duration-200">
         <header className="h-16 border-b border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 flex items-center justify-between px-6 transition-colors duration-200">
-          <div className="flex items-center gap-3">
-            <FolderKanban className="text-blue-600 dark:text-blue-500" />
-            <h1 className="font-bold text-slate-800 dark:text-slate-100 text-lg">My Workflows</h1>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-blue-600/10 text-blue-500 rounded-lg border border-blue-500/20">
+                <Sparkles size={18} />
+              </div>
+              <span className="font-extrabold text-[15px] tracking-wider text-slate-800 dark:text-slate-100 uppercase">NexFlow</span>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-800 pl-6 h-8">
+              <button
+                onClick={() => setActiveTab('workflows')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition ${
+                  activeTab === 'workflows'
+                    ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <FolderKanban size={15} />
+                <span>Workflows</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition ${
+                  activeTab === 'analytics'
+                    ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Activity size={15} />
+                <span>Analytics</span>
+              </button>
+            </div>
           </div>
+
           <div className="flex items-center gap-3">
             {/* Theme Toggle */}
             <button
@@ -424,6 +458,9 @@ export default function Home() {
           </div>
         </header>
 
+        {activeTab === 'analytics' ? (
+          <DashboardAnalytics />
+        ) : (
         <main className="flex-1 max-w-4xl w-full mx-auto p-8 flex flex-col gap-6 overflow-y-auto">
           {/* Create Workflow Block */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-xl p-6 shadow-sm dark:shadow-md transition-colors duration-200">
@@ -494,6 +531,7 @@ export default function Home() {
             )}
           </div>
         </main>
+        )}
         <CredentialsModal />
       </div>
     )
