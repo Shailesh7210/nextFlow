@@ -66,3 +66,29 @@ async def health(db: AsyncSession = Depends(get_db)):
         logger.error(f"Health check query failed: {e}")
         return {"status": "error", "database": "disconnected"}
 
+@app.get("/health/detailed")
+async def detailed_health(db: AsyncSession = Depends(get_db)):
+    components = {}
+    
+    # 1. Database Check
+    try:
+        await db.execute(text("SELECT 1"))
+        components["database"] = {"status": "healthy"}
+    except Exception as e:
+        components["database"] = {"status": "unhealthy", "error": str(e)}
+
+    # 2. Redis Check
+    try:
+        from app.db.redis import redis_client
+        pong = await redis_client.ping()
+        components["redis"] = {"status": "healthy" if pong else "unhealthy"}
+    except Exception as e:
+        components["redis"] = {"status": "unhealthy", "error": str(e)}
+
+    overall = "ok" if all(v.get("status") == "healthy" for v in components.values()) else "degraded"
+    return {
+        "status": overall,
+        "service": settings.PROJECT_NAME,
+        "components": components
+    }
+
