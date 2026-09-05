@@ -202,6 +202,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       config = { model: 'gpt-4o', system_prompt: 'You are a helpful AI assistant.', user_prompt: 'Summarize: {{ $json.text }}', temperature: 0.7 }
     } else if (type === 'execute-workflow') {
       config = { target_workflow_id: '' }
+    } else if (type === 'loop-items') {
+      config = { items_path: '{{ $json.items }}', max_iterations: 100 }
     }
 
     const newNode: Node = {

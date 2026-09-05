@@ -232,3 +232,48 @@ async def test_sub_workflow_execution(client: AsyncClient, db_session: AsyncSess
     assert exec_log.status == "SUCCESS"
     assert exec_log.output_data["child_processed"] == "true"
 
+
+@pytest.mark.asyncio
+async def test_loop_items_execution(client: AsyncClient, db_session: AsyncSession, run_celery_eager):
+    email = get_random_email()
+    password = "pass123password"
+    db = db_session
+
+    reg_res = await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+    assert reg_res.status_code == 201
+    headers = {"Authorization": f"Bearer {reg_res.json()['access_token']}"}
+
+    nodes = [
+        {"id": "wh-1", "type": "webhook", "position": {"x": 0, "y": 0}, "data": {}},
+        {"id": "loop-1", "type": "loop-items", "position": {"x": 200, "y": 0}, "data": {"config": {"items_path": "{{ $json.items }}", "max_iterations": 10}}}
+    ]
+    conns = [{"id": "e1", "source": "wh-1", "target": "loop-1"}]
+
+    wf_res = await client.post("/api/v1/workflows", json={"name": "Loop Test Workflow", "nodes": nodes, "connections": conns}, headers=headers)
+    assert wf_res.status_code == 201
+    wf_id = wf_res.json()["id"]
+
+    await client.post(f"/api/v1/workflows/{wf_id}/publish", headers=headers)
+    await client.post(f"/api/v1/workflows/{wf_id}/activate", headers=headers)
+
+    exec_payload = {"items": ["apple", "banana", "cherry"]}
+    exec_res = await client.post(f"/api/v1/workflows/{wf_id}/execute", json=exec_payload, headers=headers)
+    assert exec_res.status_code == 201
+    exec_id = exec_res.json()["id"]
+
+    exec_log = None
+    for _ in range(20):
+        await asyncio.sleep(0.1)
+        db.expire_all()
+        exec_log = (await db.execute(select(ExecutionLog).filter(ExecutionLog.id == exec_id))).scalars().first()
+        if exec_log and exec_log.status in ("SUCCESS", "FAILED"):
+            break
+
+    assert exec_log is not None
+    assert exec_log.status == "SUCCESS"
+    assert exec_log.output_data["total_processed"] == 3
+    assert exec_log.output_data["items"][0]["item"] == "apple"
+    assert exec_log.output_data["items"][1]["item"] == "banana"
+    assert exec_log.output_data["items"][2]["item"] == "cherry"
+
+

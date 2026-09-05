@@ -1,6 +1,6 @@
 import React from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
-import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Sparkles, Network } from 'lucide-react'
+import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Sparkles, Network, Repeat } from 'lucide-react'
 
 export default function NodePalette() {
   const { addNode } = useWorkflowStore()
@@ -28,6 +28,7 @@ export default function NodePalette() {
       category: 'Logic Nodes',
       nodes: [
         { type: 'set', label: 'Set Variable', icon: <Sliders size={16} />, color: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-900/60 hover:bg-purple-100 dark:hover:bg-purple-900/30' },
+        { type: 'loop-items', label: 'Loop Items', icon: <Repeat size={16} />, color: 'bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-900/60 hover:bg-violet-100 dark:hover:bg-violet-900/30' },
         { type: 'if', label: 'IF Condition', icon: <GitFork size={16} />, color: 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/60 hover:bg-amber-100 dark:hover:bg-amber-900/30' },
         { type: 'switch', label: 'Switch Router', icon: <GitMerge size={16} />, color: 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-900/60 hover:bg-orange-100 dark:hover:bg-orange-900/30' },
         { type: 'delay', label: 'Delay Waiter', icon: <Clock size={16} />, color: 'bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-900/60 hover:bg-sky-100 dark:hover:bg-sky-900/30' }
