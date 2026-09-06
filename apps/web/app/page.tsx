@@ -6,8 +6,10 @@ import NodePalette from '@/workflow-editor/toolbar/NodePalette'
 import WorkflowCanvas from '@/workflow-editor/canvas/WorkflowCanvas'
 import ConfigPanel from '@/workflow-editor/config-panel/ConfigPanel'
 import Toolbar from '@/workflow-editor/toolbar/Toolbar'
-import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key, Globe, Sliders, Sun, Moon, Activity } from 'lucide-react'
+import { Plus, ListFilter, LogOut, ArrowRight, UserPlus, ShieldAlert, Sparkles, FolderKanban, Key, Globe, Sliders, Sun, Moon, Activity, Users, KeyRound } from 'lucide-react'
 import CredentialsModal from '@/components/CredentialsModal'
+import TeamMembersModal from '@/components/TeamMembersModal'
+import ApiKeysModal from '@/components/ApiKeysModal'
 import ExecutionHistoryModal from '@/components/ExecutionHistoryModal'
 import TemplatesModal from '@/components/TemplatesModal'
 import DashboardAnalytics from '@/components/DashboardAnalytics'
@@ -22,6 +24,8 @@ export default function Home() {
     isLoading,
     error,
     setCredentialsModalOpen,
+    setTeamModalOpen,
+    setApiKeysModalOpen,
     theme,
     setTheme
   } = useWorkflowStore()
@@ -442,11 +446,25 @@ export default function Home() {
               {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
             </button>
             <button
+              onClick={() => setTeamModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-purple-650 dark:text-purple-350 hover:text-purple-800 dark:hover:text-white font-semibold border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-850 rounded-lg bg-white dark:bg-slate-900 transition"
+            >
+              <Users size={14} />
+              Team & Roles
+            </button>
+            <button
+              onClick={() => setApiKeysModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-amber-650 dark:text-amber-350 hover:text-amber-800 dark:hover:text-white font-semibold border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-850 rounded-lg bg-white dark:bg-slate-900 transition"
+            >
+              <KeyRound size={14} />
+              API Keys
+            </button>
+            <button
               onClick={() => setCredentialsModalOpen(true)}
               className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-slate-650 dark:text-slate-350 hover:text-slate-800 dark:hover:text-white font-semibold border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-850 rounded-lg bg-white dark:bg-slate-900 transition"
             >
               <Key size={14} />
-              Manage Credentials
+              Credentials
             </button>
             <button
               onClick={handleLogout}
@@ -533,6 +551,8 @@ export default function Home() {
         </main>
         )}
         <CredentialsModal />
+        <TeamMembersModal />
+        <ApiKeysModal />
       </div>
     )
   }
@@ -560,6 +580,8 @@ export default function Home() {
         <ConfigPanel />
       </div>
       <CredentialsModal />
+      <TeamMembersModal />
+      <ApiKeysModal />
       <ExecutionHistoryModal />
       <TemplatesModal isOpen={isTemplatesOpen} onClose={() => setIsTemplatesOpen(false)} />
     </div>

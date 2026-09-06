@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
-import { Undo2, Redo2, Save, CloudLightning, Power, Key, Sun, Moon, Play, History, Download, Upload, LayoutTemplate, GitCompare } from 'lucide-react'
+import { Undo2, Redo2, Save, CloudLightning, Power, Key, Sun, Moon, Play, History, Download, Upload, LayoutTemplate, GitCompare, Users, KeyRound } from 'lucide-react'
 import VersionDiffModal from '../modals/VersionDiffModal'
 
 interface ToolbarProps {
@@ -21,6 +21,8 @@ export default function Toolbar({ onOpenTemplates }: ToolbarProps) {
     publishWorkflow,
     toggleActivation,
     setCredentialsModalOpen,
+    setTeamModalOpen,
+    setApiKeysModalOpen,
     theme,
     setTheme,
     isExecuting,
@@ -188,6 +190,26 @@ export default function Toolbar({ onOpenTemplates }: ToolbarProps) {
             title="Import Workflow JSON"
           >
             <Upload size={15} />
+          </button>
+
+          {/* Team Members */}
+          <button
+            onClick={() => setTeamModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-900 bg-purple-50/50 dark:bg-purple-950/40 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/60 transition"
+            title="Team member invitations and RBAC roles"
+          >
+            <Users size={15} />
+            Team
+          </button>
+
+          {/* API Keys */}
+          <button
+            onClick={() => setApiKeysModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/40 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/60 transition"
+            title="Developer API keys for REST execution"
+          >
+            <KeyRound size={15} />
+            API Keys
           </button>
 
           {/* Manage Credentials */}
