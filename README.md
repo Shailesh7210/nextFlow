@@ -145,6 +145,9 @@ docker run -d --name nexflow-redis -p 6379:6379 redis:7
    ```bash
    cd apps/backend
    # Activate virtualenv first
+   # On Windows:
+   celery -A app.core.celery_app worker --loglevel=info --pool=solo
+   # On Linux/macOS:
    celery -A app.core.celery_app worker --loglevel=info
    ```
 
@@ -212,3 +215,23 @@ NexFlow includes built-in RAG (Retrieval-Augmented Generation) nodes:
 2. **Vector Indexer Node (`vector-indexer`)**: Generates embeddings and saves chunks into multi-tenant isolated vector storage.
 3. **RAG Retriever Node (`rag-retriever`)**: Searches stored document embeddings by cosine similarity for top-K matching contexts.
 4. **AI Prompt Node (`ai-prompt`)**: Synthesizes retrieved context into an accurate LLM answer.
+
+---
+
+## 🌐 Deploying to Render
+
+NexFlow includes a `render.yaml` Blueprint specification for one-click stack deployment on Render.
+
+1. **Push your code to GitHub / GitLab.**
+2. Go to the [Render Dashboard](https://dashboard.render.com).
+3. Click **New +** $\rightarrow$ **Blueprint**.
+4. Connect your NexFlow repository.
+5. Render will automatically detect `render.yaml` and provision:
+   - **PostgreSQL Database** (`nexflow-db`)
+   - **Redis Cache & Celery Broker** (`nexflow-redis`)
+   - **FastAPI Control Plane** (`nexflow-backend`)
+   - **Celery Execution Worker** (`nexflow-worker`)
+   - **Next.js Web UI** (`nexflow-web`)
+6. Fill in your environment secrets (`SMTP_USER`, `SMTP_PASSWORD`, `OPENAI_API_KEY`) when prompted.
+7. Click **Apply** to deploy!
+

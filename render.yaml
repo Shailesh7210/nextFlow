@@ -1,0 +1,80 @@
+services:
+  # 1. FastAPI Backend Control Plane
+  - type: web
+    name: nexflow-backend
+    env: python
+    region: oregon
+    buildCommand: cd apps/backend && pip install -r requirements.txt && alembic upgrade head
+    startCommand: cd apps/backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nexflow-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: nexflow-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: nexflow-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: nexflow-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CREDENTIAL_ENCRYPTION_KEY
+        generateValue: true
+
+  # 2. Celery Background Execution Worker
+  - type: worker
+    name: nexflow-worker
+    env: python
+    region: oregon
+    buildCommand: cd apps/backend && pip install -r requirements.txt
+    startCommand: cd apps/backend && celery -A app.core.celery_app worker --loglevel=info
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nexflow-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: nexflow-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: nexflow-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: nexflow-redis
+          property: connectionString
+
+  # 3. Next.js Web Editor UI
+  - type: web
+    name: nexflow-web
+    env: node
+    region: oregon
+    buildCommand: cd apps/web && npm install && npm run build
+    startCommand: cd apps/web && npm run start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: nexflow-backend
+          property: url
+
+databases:
+  - name: nexflow-db
+    databaseName: nexflow
+    user: postgres
+    region: oregon
