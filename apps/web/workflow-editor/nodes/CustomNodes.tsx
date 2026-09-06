@@ -1,6 +1,6 @@
 import React from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles, Network, Repeat, ShieldAlert, Send, Code, UserCheck } from 'lucide-react'
+import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles, Network, Repeat, ShieldAlert, Send, Code, UserCheck, FileText, Database, BookOpen } from 'lucide-react'
 import { useWorkflowStore } from '../../store/useWorkflowStore'
 
 interface NodeHeaderProps {
@@ -872,6 +872,178 @@ export const HumanApprovalNode = ({ id, data, selected }: any) => {
   )
 }
 
+// Document Chunker Node
+export const DocumentChunkerNode = ({ id, data, selected }: any) => {
+  const chunkSize = data?.config?.chunk_size ?? 500
+  const overlap = data?.config?.overlap ?? 50
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
+
+  return (
+    <div className={`relative w-[240px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-cyan-500 ring-2 ring-cyan-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
+    }`}>
+      <ExecutionStatusBadge id={id} />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input" 
+        style={{
+          top: '50%',
+          left: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#475569',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+      
+      <NodeHeader
+        icon={<FileText size={16} />}
+        title={data.label || "Document Chunker"}
+        subtitle="Text Segmenter"
+        colorClass="bg-cyan-600"
+        selected={selected}
+      />
+
+      <div className="mt-3 flex items-center justify-between text-[11px] bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg font-mono">
+        <span className="text-slate-500 dark:text-slate-400 font-semibold">Chunk / Overlap:</span>
+        <span className="font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-200 dark:border-cyan-900 leading-none">{chunkSize} / {overlap}</span>
+      </div>
+
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="output" 
+        style={{
+          top: '50%',
+          right: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#0891b2',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+    </div>
+  )
+}
+
+// Vector Indexer Node
+export const VectorIndexerNode = ({ id, data, selected }: any) => {
+  const docName = data?.config?.document_name || 'Untitled_Document.txt'
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
+
+  return (
+    <div className={`relative w-[240px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
+    }`}>
+      <ExecutionStatusBadge id={id} />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input" 
+        style={{
+          top: '50%',
+          left: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#475569',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+      
+      <NodeHeader
+        icon={<Database size={16} />}
+        title={data.label || "Vector Indexer"}
+        subtitle="Embedding Store"
+        colorClass="bg-blue-600"
+        selected={selected}
+      />
+
+      <div className="mt-3 flex flex-col gap-1 text-[11px] bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg font-mono">
+        <span className="text-slate-500 dark:text-slate-400 font-semibold">Document Tag:</span>
+        <span className="font-bold text-blue-600 dark:text-blue-400 truncate">{docName}</span>
+      </div>
+
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="output" 
+        style={{
+          top: '50%',
+          right: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#2563eb',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+    </div>
+  )
+}
+
+// RAG Retriever Node
+export const RagRetrieverNode = ({ id, data, selected }: any) => {
+  const topK = data?.config?.top_k ?? 3
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
+
+  return (
+    <div className={`relative w-[240px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
+    }`}>
+      <ExecutionStatusBadge id={id} />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input" 
+        style={{
+          top: '50%',
+          left: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#475569',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+      
+      <NodeHeader
+        icon={<BookOpen size={16} />}
+        title={data.label || "RAG Retriever"}
+        subtitle="Vector Similarity Search"
+        colorClass="bg-purple-600"
+        selected={selected}
+      />
+
+      <div className="mt-3 flex items-center justify-between text-[11px] bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg font-mono">
+        <span className="text-slate-500 dark:text-slate-400 font-semibold">Top Results (K):</span>
+        <span className="font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-900 leading-none">{topK} chunks</span>
+      </div>
+
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="output" 
+        style={{
+          top: '50%',
+          right: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#9333ea',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+    </div>
+  )
+}
+
 export const nodeTypes = {
   'webhook': WebhookNode,
   'http-request': HttpRequestNode,
@@ -885,4 +1057,7 @@ export const nodeTypes = {
   'respond-to-webhook': RespondToWebhookNode,
   'code-script': CodeScriptNode,
   'human-approval': HumanApprovalNode,
+  'document-chunker': DocumentChunkerNode,
+  'vector-indexer': VectorIndexerNode,
+  'rag-retriever': RagRetrieverNode,
 }

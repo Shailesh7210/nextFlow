@@ -1,6 +1,6 @@
 import React from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
-import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Sparkles, Network, Repeat, Send, Code, UserCheck } from 'lucide-react'
+import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Sparkles, Network, Repeat, Send, Code, UserCheck, FileText, Database, BookOpen } from 'lucide-react'
 
 export default function NodePalette() {
   const { addNode } = useWorkflowStore()
@@ -14,15 +14,18 @@ export default function NodePalette() {
       ]
     },
     {
-      category: 'Sub-Workflows',
+      category: 'RAG & AI Knowledge',
       nodes: [
-        { type: 'execute-workflow', label: 'Sub-Workflow', icon: <Network size={16} />, color: 'bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-900/60 hover:bg-teal-100 dark:hover:bg-teal-900/30' }
+        { type: 'ai-prompt', label: 'AI Prompt / LLM', icon: <Sparkles size={16} />, color: 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/30' },
+        { type: 'document-chunker', label: 'Document Chunker', icon: <FileText size={16} />, color: 'bg-cyan-50 dark:bg-cyan-950/30 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-900/60 hover:bg-cyan-100 dark:hover:bg-cyan-900/30' },
+        { type: 'vector-indexer', label: 'Vector Indexer', icon: <Database size={16} />, color: 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-900/30' },
+        { type: 'rag-retriever', label: 'RAG Retriever', icon: <BookOpen size={16} />, color: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-900/60 hover:bg-purple-100 dark:hover:bg-purple-900/30' }
       ]
     },
     {
-      category: 'AI & ML',
+      category: 'Sub-Workflows',
       nodes: [
-        { type: 'ai-prompt', label: 'AI Prompt / LLM', icon: <Sparkles size={16} />, color: 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/30' }
+        { type: 'execute-workflow', label: 'Sub-Workflow', icon: <Network size={16} />, color: 'bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-900/60 hover:bg-teal-100 dark:hover:bg-teal-900/30' }
       ]
     },
     {

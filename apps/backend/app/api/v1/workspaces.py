@@ -1,11 +1,13 @@
+import secrets
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_current_active_workspace, get_db, RoleChecker
+from app.api.dependencies import get_current_active_workspace, get_db, RoleChecker, get_current_user
 from app.core.security import get_password_hash
+from app.core.email import send_invite_email
 from app.models.user import User
 from app.models.workspace_member import WorkspaceMember
 
@@ -27,7 +29,7 @@ async def list_workspace_members(
     _role = Depends(RoleChecker(["owner", "admin", "editor", "viewer"]))
 ):
     """
-    List all team members and their assigned roles for the active workspace.
+    List members and their assigned roles in the active workspace.
     """
     stmt = (
         select(WorkspaceMember, User)
@@ -36,10 +38,10 @@ async def list_workspace_members(
         .order_by(WorkspaceMember.created_at.asc())
     )
     res = await db.execute(stmt)
-    rows = res.all()
+    results = res.all()
 
     members = []
-    for member, user in rows:
+    for member, user in results:
         members.append({
             "id": member.id,
             "user_id": user.id,
@@ -53,12 +55,14 @@ async def list_workspace_members(
 @router.post("/members/invite", status_code=status.HTTP_201_CREATED)
 async def invite_workspace_member(
     payload: InviteMemberSchema,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     workspace = Depends(get_current_active_workspace),
+    current_user: User = Depends(get_current_user),
     _role = Depends(RoleChecker(["owner", "admin"]))
 ):
     """
-    Invite a team member by email and assign a workspace role.
+    Invite a team member by email, assign a workspace role, and send an email notification with login details.
     """
     if payload.role not in VALID_ROLES:
         raise HTTPException(
@@ -71,11 +75,14 @@ async def invite_workspace_member(
     res_user = await db.execute(stmt_user)
     user = res_user.scalars().first()
 
+    temp_password: Optional[str] = None
+
     if not user:
-        # Create user account for invited user
+        # Create user account for newly invited user with random secure temporary password
+        temp_password = f"Nex_{secrets.token_urlsafe(8)}!"
         user = User(
             email=payload.email,
-            hashed_password=get_password_hash("NexFlowTempPass123!"),
+            hashed_password=get_password_hash(temp_password),
             full_name=payload.email.split("@")[0].capitalize(),
             is_active=True
         )
@@ -106,12 +113,24 @@ async def invite_workspace_member(
         await db.commit()
         await db.refresh(member)
 
+    # Queue SMTP invitation email dispatch
+    inviter_display_name = current_user.full_name or current_user.email
+    background_tasks.add_task(
+        send_invite_email,
+        to_email=user.email,
+        workspace_name=workspace.name,
+        inviter_name=inviter_display_name,
+        role=payload.role,
+        temp_password=temp_password
+    )
+
     return {
         "id": member.id,
         "user_id": user.id,
         "email": user.email,
         "full_name": user.full_name,
         "role": member.role,
+        "email_queued": True,
         "created_at": member.created_at.isoformat() if member.created_at else None
     }
 

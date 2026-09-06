@@ -122,3 +122,43 @@ async def get_user_workspaces(
     
     result = await db.execute(query)
     return result.scalars().all()
+
+from app.schemas.user import UserProfileUpdate
+
+@router.get("/me", response_model=UserOut)
+async def get_my_profile(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get profile information of currently authenticated user.
+    """
+    return current_user
+
+@router.patch("/me", response_model=UserOut)
+async def update_my_profile(
+    payload: UserProfileUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update profile details (full_name, password).
+    """
+    if payload.full_name is not None:
+        current_user.full_name = payload.full_name.strip()
+
+    if payload.new_password:
+        if not payload.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is required to set a new password."
+            )
+        if not verify_password(payload.current_password, current_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect current password."
+            )
+        current_user.hashed_password = get_password_hash(payload.new_password)
+
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user

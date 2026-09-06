@@ -14,6 +14,7 @@ from app.models.execution_log import ExecutionLog
 from app.models.workflow import Workflow
 from app.models.workflow_version import WorkflowVersion
 from app.core.crypto import decrypt_data
+from app.core.rag import chunk_text, index_document_chunks, search_vector_store
 from app.db.redis import redis_client
 
 logger = logging.getLogger(__name__)
@@ -451,6 +452,66 @@ class WorkflowExecutor:
                 "message": approval.message
             }
 
+        elif node_type == "document-chunker":
+            document_text = self.resolve_value(config.get("text", ""), context)
+            chunk_size = int(config.get("chunk_size", 500))
+            overlap = int(config.get("overlap", 50))
+
+            chunks = chunk_text(str(document_text), chunk_size=chunk_size, overlap=overlap)
+            return {
+                "chunks": chunks,
+                "total_chunks": len(chunks),
+                "chunk_size": chunk_size,
+                "overlap": overlap
+            }
+
+        elif node_type == "vector-indexer":
+            document_name = self.resolve_value(config.get("document_name", "Untitled_Document.txt"), context)
+            document_text = self.resolve_value(config.get("text", ""), context)
+            chunk_size = int(config.get("chunk_size", 500))
+            overlap = int(config.get("overlap", 50))
+
+            # Retrieve active workspace ID from context
+            workspace_id = context.get("_workspace_id") or "default_workspace"
+
+            indexed = await index_document_chunks(
+                db=self.db,
+                workspace_id=str(workspace_id),
+                document_name=str(document_name),
+                text=str(document_text),
+                chunk_size=chunk_size,
+                overlap=overlap
+            )
+            return {
+                "status": "INDEXED",
+                "document_name": str(document_name),
+                "indexed_chunks": len(indexed),
+                "workspace_id": str(workspace_id)
+            }
+
+        elif node_type == "rag-retriever":
+            query = self.resolve_value(config.get("query", ""), context)
+            top_k = int(config.get("top_k", 3))
+
+            workspace_id = context.get("_workspace_id") or "default_workspace"
+
+            results = await search_vector_store(
+                db=self.db,
+                workspace_id=str(workspace_id),
+                query_text=str(query),
+                top_k=top_k
+            )
+
+            # Combine retrieved content into unified context block
+            combined_context = "\n\n".join([f"[{r['document_name']} Chunk #{r['chunk_index']}]: {r['content']}" for r in results])
+
+            return {
+                "query": str(query),
+                "context": combined_context,
+                "results": results,
+                "matched_count": len(results)
+            }
+
         raise ValueError(f"Unknown node type: {node_type}")
 
     async def execute_node_resilient(self, node: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
@@ -692,11 +753,18 @@ class WorkflowExecutor:
             await self.db.commit()
             return
 
+        # Fetch parent workflow to retrieve workspace_id for multi-tenant isolation
+        stmt_wf = select(Workflow).filter(Workflow.id == exec_log.workflow_id)
+        res_wf = await self.db.execute(stmt_wf)
+        wf_obj = res_wf.scalars().first()
+        workspace_id = wf_obj.workspace_id if wf_obj else "default_workspace"
+
         # Initialize context namespaces
         context = {
             "$json": exec_log.input_data or {},
             "$node": {},
-            "_execution_log_id": execution_log_id
+            "_execution_log_id": execution_log_id,
+            "_workspace_id": workspace_id
         }
         node_executions = []
         visited = set()

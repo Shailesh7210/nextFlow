@@ -163,3 +163,55 @@ async def test_workspace_isolation(client: AsyncClient, db_session: AsyncSession
     await db.delete(user_a)
     await db.delete(user_b)
     await db.commit()
+
+@pytest.mark.asyncio
+async def test_user_profile_get_and_update(client: AsyncClient, db_session: AsyncSession):
+    email = get_random_email()
+    password = "initialpassword123"
+    db = db_session
+
+    reg = await client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": password, "full_name": "Original Name"}
+    )
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. GET /api/v1/auth/me
+    me_res = await client.get("/api/v1/auth/me", headers=headers)
+    assert me_res.status_code == 200
+    me_data = me_res.json()
+    assert me_data["email"] == email
+    assert me_data["full_name"] == "Original Name"
+
+    # 2. PATCH /api/v1/auth/me (Update full_name)
+    update_res = await client.patch(
+        "/api/v1/auth/me",
+        headers=headers,
+        json={"full_name": "Updated Profile Name"}
+    )
+    assert update_res.status_code == 200
+    assert update_res.json()["full_name"] == "Updated Profile Name"
+
+    # 3. Change password with wrong current password (should fail)
+    bad_pass_res = await client.patch(
+        "/api/v1/auth/me",
+        headers=headers,
+        json={"current_password": "wrongpassword", "new_password": "newpassword123"}
+    )
+    assert bad_pass_res.status_code == 400
+
+    # 4. Change password with correct current password
+    good_pass_res = await client.patch(
+        "/api/v1/auth/me",
+        headers=headers,
+        json={"current_password": password, "new_password": "newpassword123"}
+    )
+    assert good_pass_res.status_code == 200
+
+    # 5. Login with new password
+    login_new = await client.post(
+        "/api/v1/auth/login",
+        data={"username": email, "password": "newpassword123"}
+    )
+    assert login_new.status_code == 200

@@ -17,7 +17,10 @@ class UserOut(UserBase):
     is_active: bool
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None
 
 class Token(BaseModel):
     access_token: str
