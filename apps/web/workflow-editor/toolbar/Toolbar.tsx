@@ -108,7 +108,8 @@ export default function Toolbar({ onOpenTemplates }: ToolbarProps) {
         />
 
         {/* Title & Info */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="NexFlow Logo" className="w-8 h-8 rounded-md border border-blue-500/30 shadow-sm object-cover" />
           <div>
             <h1 className="font-bold text-slate-800 dark:text-slate-100 text-lg leading-tight">{workflowName}</h1>
             <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">

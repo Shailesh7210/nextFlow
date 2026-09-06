@@ -236,10 +236,8 @@ export default function Home() {
         {/* Left Side: Product Intro & Dark Pattern Grid */}
         <div className="hidden md:flex w-1/2 auth-grid-bg flex-col justify-between p-12 border-r border-slate-900">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600/10 text-blue-500 rounded-lg border border-blue-500/20">
-              <Sparkles size={20} />
-            </div>
-            <span className="font-extrabold text-[15px] tracking-wider text-slate-200 uppercase">NexFlow</span>
+            <img src="/logo.png" alt="NexFlow Logo" className="w-9 h-9 rounded-lg border border-blue-500/30 shadow-lg shadow-blue-500/10 object-cover" />
+            <span className="font-extrabold text-[16px] tracking-wider text-slate-100 uppercase">NexFlow</span>
           </div>
 
           <div className="max-w-md my-auto flex flex-col gap-6">

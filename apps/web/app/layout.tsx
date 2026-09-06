@@ -2,8 +2,13 @@ import './globals.css'
 import React from 'react'
 
 export const metadata = {
-  title: 'NexFlow Editor',
-  description: 'Visual Workflow Automation Canvas',
+  title: 'NexFlow | Visual Workflow Automation Platform',
+  description: 'Self-hosted visual workflow automation engine with async Celery execution, WebSockets, and RAG knowledge retrieval.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/icon.png',
+  },
 }
 
 export default function RootLayout({
