@@ -443,3 +443,97 @@ async def list_workflow_executions(
     ).order_by(ExecutionLog.created_at.desc())
     execs_result = await db.execute(execs_query)
     return execs_result.scalars().all()
+
+@router.get("/{id}/versions/diff", status_code=status.HTTP_200_OK)
+async def compare_workflow_versions(
+    id: str,
+    v1: str,
+    v2: str,
+    db: AsyncSession = Depends(get_db),
+    workspace = Depends(get_current_active_workspace)
+):
+    """
+    Computes a visual version diff between snapshot version v1 and version v2 (or 'draft').
+    """
+    query = select(Workflow).filter(
+        Workflow.id == id,
+        Workflow.workspace_id == workspace.id
+    )
+    result = await db.execute(query)
+    workflow = result.scalars().first()
+    if not workflow:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found."
+        )
+
+    # Resolve v1 snapshot
+    if v1 == "draft":
+        v1_nodes = workflow.nodes or []
+        v1_conns = workflow.connections or []
+    else:
+        v1_query = select(WorkflowVersion).filter(WorkflowVersion.id == v1, WorkflowVersion.workflow_id == id)
+        v1_res = await db.execute(v1_query)
+        v1_obj = v1_res.scalars().first()
+        if not v1_obj:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Version snapshot '{v1}' not found.")
+        v1_nodes = v1_obj.nodes or []
+        v1_conns = v1_obj.connections or []
+
+    # Resolve v2 snapshot
+    if v2 == "draft":
+        v2_nodes = workflow.nodes or []
+        v2_conns = workflow.connections or []
+    else:
+        v2_query = select(WorkflowVersion).filter(WorkflowVersion.id == v2, WorkflowVersion.workflow_id == id)
+        v2_res = await db.execute(v2_query)
+        v2_obj = v2_res.scalars().first()
+        if not v2_obj:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Version snapshot '{v2}' not found.")
+        v2_nodes = v2_obj.nodes or []
+        v2_conns = v2_obj.connections or []
+
+    nodes_v1 = {n["id"]: n for n in v1_nodes}
+    nodes_v2 = {n["id"]: n for n in v2_nodes}
+
+    added_nodes = [n for nid, n in nodes_v2.items() if nid not in nodes_v1]
+    deleted_nodes = [n for nid, n in nodes_v1.items() if nid not in nodes_v2]
+
+    modified_nodes = []
+    for nid, n2 in nodes_v2.items():
+        if nid in nodes_v1:
+            n1 = nodes_v1[nid]
+            c1 = n1.get("config", {}) or n1.get("data", {}).get("config", {})
+            c2 = n2.get("config", {}) or n2.get("data", {}).get("config", {})
+            if c1 != c2 or n1.get("name") != n2.get("name") or n1.get("type") != n2.get("type"):
+                modified_nodes.append({
+                    "id": nid,
+                    "name": n2.get("name") or n2.get("type"),
+                    "type": n2.get("type"),
+                    "before": {"name": n1.get("name"), "type": n1.get("type"), "config": c1},
+                    "after": {"name": n2.get("name"), "type": n2.get("type"), "config": c2}
+                })
+
+    conn_set_1 = {f"{c.get('source')}:{c.get('sourcePort', 'main')}->{c.get('target')}:{c.get('targetPort', 'main')}" for c in v1_conns}
+    conn_set_2 = {f"{c.get('source')}:{c.get('sourcePort', 'main')}->{c.get('target')}:{c.get('targetPort', 'main')}" for c in v2_conns}
+
+    added_conns = list(conn_set_2 - conn_set_1)
+    deleted_conns = list(conn_set_1 - conn_set_2)
+
+    return {
+        "workflow_id": id,
+        "v1": v1,
+        "v2": v2,
+        "summary": {
+            "added_count": len(added_nodes),
+            "deleted_count": len(deleted_nodes),
+            "modified_count": len(modified_nodes),
+            "added_connections_count": len(added_conns),
+            "deleted_connections_count": len(deleted_conns)
+        },
+        "added_nodes": added_nodes,
+        "deleted_nodes": deleted_nodes,
+        "modified_nodes": modified_nodes,
+        "added_connections": added_conns,
+        "deleted_connections": deleted_conns
+    }
