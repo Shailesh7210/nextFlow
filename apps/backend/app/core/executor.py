@@ -349,6 +349,21 @@ class WorkflowExecutor:
                 "total_processed": len(processed_results)
             }
 
+        elif node_type == "respond-to-webhook":
+            status_code = int(config.get("status_code", 200))
+            raw_body = config.get("response_body", "{{ $json }}")
+            resolved_body = self.resolve_value(raw_body, context)
+            raw_headers = config.get("response_headers", {})
+            resolved_headers = self.resolve_value(raw_headers, context)
+            if not isinstance(resolved_headers, dict):
+                resolved_headers = {}
+
+            return {
+                "_response_status": status_code,
+                "_response_body": resolved_body,
+                "_response_headers": resolved_headers
+            }
+
         raise ValueError(f"Unknown node type: {node_type}")
 
     async def execute_node_resilient(self, node: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:

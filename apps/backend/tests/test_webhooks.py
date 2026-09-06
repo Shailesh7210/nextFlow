@@ -126,3 +126,48 @@ async def test_inbound_webhook_trigger(client: AsyncClient, db_session: AsyncSes
     
     # Assert Set Node output resolved query param "google_ads"
     assert exec_log.output_data["source"] == "google_ads"
+
+
+@pytest.mark.asyncio
+async def test_sync_webhook_custom_response(client: AsyncClient, db_session: AsyncSession, run_celery_eager):
+    email = get_random_email()
+    password = "pass123password"
+    db = db_session
+
+    reg_res = await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+    assert reg_res.status_code == 201
+    headers = {"Authorization": f"Bearer {reg_res.json()['access_token']}"}
+
+    # Workflow: Webhook -> Respond to Webhook (status 201, custom body)
+    nodes = [
+        {"id": "wh-1", "type": "webhook", "position": {"x": 0, "y": 0}, "data": {}},
+        {
+            "id": "resp-1",
+            "type": "respond-to-webhook",
+            "position": {"x": 200, "y": 0},
+            "data": {
+                "config": {
+                    "status_code": 201,
+                    "response_body": {"status": "created", "ref": "{{ $json.body.name }}"},
+                    "response_headers": {"X-NexFlow-Custom": "SyncSuccess"}
+                }
+            }
+        }
+    ]
+    conns = [{"id": "c1", "source": "wh-1", "target": "resp-1"}]
+
+    wf_res = await client.post("/api/v1/workflows", json={"name": "Sync Custom Response Flow", "nodes": nodes, "connections": conns}, headers=headers)
+    assert wf_res.status_code == 201
+    wf_id = wf_res.json()["id"]
+
+    await client.post(f"/api/v1/workflows/{wf_id}/publish", headers=headers)
+    await client.post(f"/api/v1/workflows/{wf_id}/activate", headers=headers)
+
+    # Invoke synchronously with ?sync=true
+    resp = await client.post(f"/api/v1/webhooks/{wf_id}?sync=true", json={"name": "NexFlow User"})
+    assert resp.status_code == 201
+    assert resp.headers.get("x-nexflow-custom") == "SyncSuccess"
+    body_json = resp.json()
+    assert body_json["status"] == "created"
+    assert body_json["ref"] == "NexFlow User"
+
