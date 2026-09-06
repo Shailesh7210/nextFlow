@@ -20,6 +20,7 @@ NexFlow is an n8n-inspired, self-hosted visual workflow automation platform. Bui
 - **Phase 12: Production Readiness & Docker Service Stack** — One-command multi-container Docker deployment (`docker-compose.yml`), multi-stage frontend Dockerfile, and component health monitoring (`/health/detailed`).
 - **Phase 13: Sub-Workflow Invocation Node & Graph Nesting Engine** — Sub-workflow node (`execute-workflow`), nested child graph traversal, output payload propagation, and circular recursion depth safeguard.
 - **Phase 14: Looping & Array Processing Node & Batch Execution Engine** — Array iteration node (`loop-items`), dynamic payload resolution (`{{ $json.items }}`), iteration cap limits, and aggregated output batching.
+- **Phase 15: Node-Level Error Handling & Fallback Retry Engine** — Automatic retries with exponential backoff delay (`retry_on_fail`, `max_retries`), continue-on-fail error swallowing (`continue_on_fail`), and visual node error indicators.
 
 ---
 

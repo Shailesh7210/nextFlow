@@ -351,6 +351,38 @@ class WorkflowExecutor:
 
         raise ValueError(f"Unknown node type: {node_type}")
 
+    async def execute_node_resilient(self, node: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Executes a node with automatic retries and continue-on-fail handling.
+        """
+        config = node.get("data", {}).get("config", {})
+        retry_on_fail = config.get("retry_on_fail", False)
+        max_retries = int(config.get("max_retries", 3)) if retry_on_fail else 0
+        retry_delay = float(config.get("retry_delay", 2.0))
+        continue_on_fail = config.get("continue_on_fail", False)
+
+        attempt = 0
+        last_error = None
+
+        while True:
+            try:
+                return await self.execute_node(node, context)
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries:
+                    attempt += 1
+                    logger.warning(f"Node {node.get('id')} failed attempt {attempt}/{max_retries}: {e}. Retrying in {retry_delay}s...")
+                    await asyncio.sleep(retry_delay)
+                else:
+                    break
+
+        if continue_on_fail:
+            logger.info(f"Node {node.get('id')} failed after retries, continuing execution as continue_on_fail is enabled.")
+            node["_active_branch"] = "error"
+            return {"error": str(last_error), "failed": True}
+        else:
+            raise last_error
+
     async def run_graph_traversal(
         self,
         nodes: List[Dict[str, Any]],
@@ -424,8 +456,8 @@ class WorkflowExecutor:
                 "$node": {k: (v.copy() if isinstance(v, dict) else v) for k, v in context.get("$node", {}).items()}
             }
 
-            # Run node
-            node_output = await self.execute_node(node, context)
+            # Run node with resilience (retries & continue_on_fail)
+            node_output = await self.execute_node_resilient(node, context)
 
             # Record results
             context["$json"] = node_output
@@ -581,8 +613,8 @@ class WorkflowExecutor:
                     "$node": {k: v.copy() for k, v in context["$node"].items()}
                 }
 
-                # Run node
-                node_output = await self.execute_node(node, context)
+                # Run node with resilience (retries & continue_on_fail)
+                node_output = await self.execute_node_resilient(node, context)
 
                 # Record results
                 context["$json"] = node_output

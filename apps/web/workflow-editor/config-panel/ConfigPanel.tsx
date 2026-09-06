@@ -1,6 +1,6 @@
 import React from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
-import { X, Settings, HelpCircle } from 'lucide-react'
+import { X, Settings, HelpCircle, ShieldAlert, RefreshCw } from 'lucide-react'
 
 export default function ConfigPanel() {
   const { 
@@ -457,6 +457,72 @@ export default function ConfigPanel() {
                 value={config.max_iterations ?? 100}
                 onChange={(e) => handleUpdate('max_iterations', parseInt(e.target.value) || 100)}
                 className="w-full text-[12px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-violet-500 font-medium"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Error Handling & Retries Section (All non-webhook nodes) */}
+        {type !== 'webhook' && (
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+            <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200 font-bold text-[12px]">
+              <ShieldAlert size={14} className="text-amber-500" />
+              <span>Error Handling & Retries</span>
+            </div>
+
+            {/* Retry on Failure */}
+            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col">
+                <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">Retry on Failure</span>
+                <span className="text-[10px] text-slate-400">Retry node on transient errors</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={!!config.retry_on_fail}
+                onChange={(e) => handleUpdate('retry_on_fail', e.target.checked)}
+                className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
+              />
+            </div>
+
+            {config.retry_on_fail && (
+              <div className="grid grid-cols-2 gap-2 pl-1">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Max Retries</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    value={config.max_retries ?? 3}
+                    onChange={(e) => handleUpdate('max_retries', parseInt(e.target.value) || 1)}
+                    className="w-full text-[12px] px-2.5 py-1 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Delay (s)</label>
+                  <input
+                    type="number"
+                    min={0.1}
+                    max={60}
+                    step={0.5}
+                    value={config.retry_delay ?? 2}
+                    onChange={(e) => handleUpdate('retry_delay', parseFloat(e.target.value) || 1)}
+                    className="w-full text-[12px] px-2.5 py-1 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Continue on Fail */}
+            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col">
+                <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">Continue on Error</span>
+                <span className="text-[10px] text-slate-400">Do not fail workflow on error</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={!!config.continue_on_fail}
+                onChange={(e) => handleUpdate('continue_on_fail', e.target.checked)}
+                className="w-4 h-4 accent-amber-600 rounded cursor-pointer"
               />
             </div>
           </div>
