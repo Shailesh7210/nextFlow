@@ -527,6 +527,53 @@ export default function ConfigPanel() {
             </div>
           </div>
         )}
+
+        {/* Respond to Webhook Form */}
+        {type === 'respond-to-webhook' && (
+          <div className="flex flex-col gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 rounded-lg text-emerald-750 dark:text-emerald-300 text-[12px] leading-relaxed">
+              <span className="font-semibold text-emerald-700 dark:text-emerald-400">Sync Response:</span> Configures the HTTP status code, headers, and body returned when this workflow is called via <code>?sync=true</code> webhook requests.
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                HTTP Response Code
+              </label>
+              <select
+                value={config.status_code ?? 200}
+                onChange={(e) => handleUpdate('status_code', parseInt(e.target.value) || 200)}
+                className="w-full text-[13px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-medium"
+              >
+                <option value={200}>200 OK</option>
+                <option value={201}>201 Created</option>
+                <option value={202}>202 Accepted</option>
+                <option value={204}>204 No Content</option>
+                <option value={400}>400 Bad Request</option>
+                <option value={401}>401 Unauthorized</option>
+                <option value={403}>403 Forbidden</option>
+                <option value={404}>404 Not Found</option>
+                <option value={500}>500 Internal Server Error</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Response Body Template
+              </label>
+              <textarea
+                value={config.response_body || '{{ $json }}'}
+                rows={4}
+                placeholder="e.g. {{ $json }} or { &quot;success&quot;: true }"
+                onChange={(e) => handleUpdate('response_body', e.target.value)}
+                className="w-full text-[12px] font-mono px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+              />
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 flex items-center gap-1 leading-normal">
+                <HelpCircle size={10} className="shrink-0" />
+                <span>Supports template tags like <code>{"{{ $json }}"}</code></span>
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   )

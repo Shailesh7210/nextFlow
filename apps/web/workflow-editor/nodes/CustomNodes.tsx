@@ -1,6 +1,6 @@
 import React from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles, Network, Repeat, ShieldAlert } from 'lucide-react'
+import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles, Network, Repeat, ShieldAlert, Send } from 'lucide-react'
 import { useWorkflowStore } from '../../store/useWorkflowStore'
 
 interface NodeHeaderProps {
@@ -685,6 +685,48 @@ export const LoopItemsNode = ({ id, data, selected }: any) => {
   )
 }
 
+// Custom Webhook Response Node
+export const RespondToWebhookNode = ({ id, data, selected }: any) => {
+  const statusCode = data?.config?.status_code ?? 200
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
+
+  return (
+    <div className={`relative w-[240px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
+    }`}>
+      <ExecutionStatusBadge id={id} />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input" 
+        style={{
+          top: '50%',
+          left: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#475569',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+      
+      <NodeHeader
+        icon={<Send size={16} />}
+        title={data.label || "Webhook Response"}
+        subtitle="Sync HTTP Response"
+        colorClass="bg-emerald-600"
+        selected={selected}
+      />
+
+      <div className="mt-3 flex items-center justify-between text-[11px] bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg">
+        <span className="text-slate-500 dark:text-slate-400 font-semibold">HTTP Status:</span>
+        <span className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900 leading-none">{statusCode}</span>
+      </div>
+    </div>
+  )
+}
+
 export const nodeTypes = {
   'webhook': WebhookNode,
   'http-request': HttpRequestNode,
@@ -695,4 +737,5 @@ export const nodeTypes = {
   'ai-prompt': AiPromptNode,
   'execute-workflow': ExecuteWorkflowNode,
   'loop-items': LoopItemsNode,
+  'respond-to-webhook': RespondToWebhookNode,
 }

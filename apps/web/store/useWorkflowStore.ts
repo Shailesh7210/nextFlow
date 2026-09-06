@@ -204,6 +204,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       config = { target_workflow_id: '' }
     } else if (type === 'loop-items') {
       config = { items_path: '{{ $json.items }}', max_iterations: 100 }
+    } else if (type === 'respond-to-webhook') {
+      config = { status_code: 200, response_body: '{{ $json }}', response_headers: {} }
     }
 
     const newNode: Node = {
