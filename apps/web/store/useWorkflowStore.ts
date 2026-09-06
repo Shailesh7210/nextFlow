@@ -8,7 +8,9 @@ import {
   applyEdgeChanges, 
   NodeChange, 
   EdgeChange 
+} from '@xyflow/react'
 import { BACKEND_URL } from '@/lib/config'
+
 
 
 interface HistoryState {
