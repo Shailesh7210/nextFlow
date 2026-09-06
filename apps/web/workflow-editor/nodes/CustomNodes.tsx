@@ -1,6 +1,6 @@
 import React from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles, Network, Repeat, ShieldAlert, Send } from 'lucide-react'
+import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles, Network, Repeat, ShieldAlert, Send, Code } from 'lucide-react'
 import { useWorkflowStore } from '../../store/useWorkflowStore'
 
 interface NodeHeaderProps {
@@ -727,6 +727,64 @@ export const RespondToWebhookNode = ({ id, data, selected }: any) => {
   )
 }
 
+// Custom Code Script Node
+export const CodeScriptNode = ({ id, data, selected }: any) => {
+  const language = data?.config?.language || 'python'
+  const executionState = useWorkflowStore((s) => s.nodeExecutionStates[id])
+  const executionBorder = getExecutionBorderClass(executionState)
+
+  return (
+    <div className={`relative w-[240px] bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-sm dark:shadow-lg transition-all duration-200 ${
+      executionBorder || (selected ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700')
+    }`}>
+      <ExecutionStatusBadge id={id} />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="input" 
+        style={{
+          top: '50%',
+          left: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#475569',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+      
+      <NodeHeader
+        icon={<Code size={16} />}
+        title={data.label || "Custom Code Script"}
+        subtitle="Python Code Sandbox"
+        colorClass="bg-indigo-600"
+        selected={selected}
+        resilience={{ retryOnFail: data?.config?.retry_on_fail, continueOnFail: data?.config?.continue_on_fail }}
+      />
+
+      <div className="mt-3 flex items-center justify-between text-[11px] bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 p-2 rounded-lg font-mono">
+        <span className="text-slate-500 dark:text-slate-400 font-semibold">Engine:</span>
+        <span className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-900 leading-none uppercase">{language}</span>
+      </div>
+
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="output" 
+        style={{
+          top: '50%',
+          right: '-6px',
+          width: '10px',
+          height: '10px',
+          background: '#4f46e5',
+          border: '2.5px solid var(--node-bg, #ffffff)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }} 
+      />
+    </div>
+  )
+}
+
 export const nodeTypes = {
   'webhook': WebhookNode,
   'http-request': HttpRequestNode,
@@ -738,4 +796,5 @@ export const nodeTypes = {
   'execute-workflow': ExecuteWorkflowNode,
   'loop-items': LoopItemsNode,
   'respond-to-webhook': RespondToWebhookNode,
+  'code-script': CodeScriptNode,
 }

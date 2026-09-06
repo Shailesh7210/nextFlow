@@ -364,6 +364,56 @@ class WorkflowExecutor:
                 "_response_headers": resolved_headers
             }
 
+        elif node_type == "code-script":
+            code = config.get("code", "output = $json")
+            input_data = context.get("$json", {})
+            node_data = context.get("$node", {})
+
+            # Standardize python identifiers for $ references
+            code_to_exec = code.replace("$json", "json_data").replace("$input", "input_data").replace("$node", "node_data")
+
+            safe_builtins = {
+                "abs": abs, "all": all, "any": any, "bool": bool, "dict": dict,
+                "enumerate": enumerate, "float": float, "int": int, "isinstance": isinstance,
+                "len": len, "list": list, "max": max, "min": min, "range": range,
+                "set": set, "sorted": sorted, "str": str, "sum": sum, "tuple": tuple,
+                "zip": zip, "True": True, "False": False, "None": None, "Exception": Exception,
+                "ValueError": ValueError, "TypeError": TypeError
+            }
+            import math
+            import datetime
+            import re
+
+            safe_globals = {
+                "__builtins__": safe_builtins,
+                "json": json,
+                "math": math,
+                "datetime": datetime,
+                "re": re,
+                "input_data": input_data,
+                "json_data": input_data,
+                "node_data": node_data
+            }
+            local_scope = {}
+
+            try:
+                exec(code_to_exec, safe_globals, local_scope)
+                if "output" in local_scope:
+                    res = local_scope["output"]
+                elif "result" in local_scope:
+                    res = local_scope["result"]
+                else:
+                    res = {k: v for k, v in local_scope.items() if not k.startswith("_")}
+
+                if not isinstance(res, (dict, list)):
+                    return {"result": res}
+                elif isinstance(res, list):
+                    return {"items": res, "total": len(res)}
+                return res
+            except Exception as script_err:
+                logger.error(f"Error executing code-script node {node.get('id')}: {script_err}")
+                raise ValueError(f"Code Script Execution Error: {str(script_err)}")
+
         raise ValueError(f"Unknown node type: {node_type}")
 
     async def execute_node_resilient(self, node: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
