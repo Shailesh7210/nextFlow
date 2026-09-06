@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Activity, CheckCircle2, AlertTriangle, Play, RefreshCw, FolderKanban, ArrowUpRight, Zap, Clock } from 'lucide-react'
+import { BACKEND_URL } from '@/lib/config'
 
-const BACKEND_URL = 'http://localhost:8000'
 
 interface AnalyticsSummary {
   total_workflows: number

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useWorkflowStore } from '../store/useWorkflowStore'
+import { WS_BACKEND_URL } from './config'
 
-const WS_BACKEND_URL = 'ws://localhost:8000'
 
 export function useExecutionSocket(token?: string, workspaceId?: string) {
   const activeExecutionId = useWorkflowStore((s) => s.activeExecutionId)

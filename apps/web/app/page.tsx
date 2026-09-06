@@ -14,8 +14,8 @@ import UserProfileModal from '@/components/UserProfileModal'
 import ExecutionHistoryModal from '@/components/ExecutionHistoryModal'
 import TemplatesModal from '@/components/TemplatesModal'
 import DashboardAnalytics from '@/components/DashboardAnalytics'
+import { BACKEND_URL } from '@/lib/config'
 
-const BACKEND_URL = 'http://localhost:8000'
 
 export default function Home() {
   const {

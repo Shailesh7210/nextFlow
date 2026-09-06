@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
 import { X, Key, Plus, Trash2, Edit3, Save, ShieldCheck } from 'lucide-react'
+import { BACKEND_URL } from '@/lib/config'
 
-const BACKEND_URL = 'http://localhost:8000'
 
 export default function CredentialsModal() {
   const {

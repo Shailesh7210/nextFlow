@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
 import { X, KeyRound, Plus, Trash2, Copy, Check, ShieldAlert, Code } from 'lucide-react'
+import { BACKEND_URL } from '@/lib/config'
 
-const BACKEND_URL = 'http://localhost:8000'
 
 export default function ApiKeysModal() {
   const { isApiKeysModalOpen, setApiKeysModalOpen } = useWorkflowStore()

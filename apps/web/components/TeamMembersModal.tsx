@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
 import { X, Users, UserPlus, Trash2, Shield, Mail, CheckCircle2 } from 'lucide-react'
+import { BACKEND_URL } from '@/lib/config'
 
-const BACKEND_URL = 'http://localhost:8000'
 
 const ROLE_COLORS: Record<string, string> = {
   owner: 'bg-purple-950/60 text-purple-300 border-purple-800/60',
