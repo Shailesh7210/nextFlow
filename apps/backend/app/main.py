@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from app.core.config import settings
@@ -15,12 +16,24 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup logic: check if the database is reachable
-    logger.info("Verifying database connection on startup...")
+    # Startup logic: verify database connection and run Alembic migrations
+    logger.info("Verifying database connection and applying Alembic migrations on startup...")
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         logger.info("Database connection verified successfully.")
+
+        try:
+            from alembic.config import Config
+            from alembic import command
+            alembic_cfg = Config("alembic.ini")
+            sync_url = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+            alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+            command.upgrade(alembic_cfg, "head")
+            logger.info("Alembic database migrations applied successfully.")
+        except Exception as mig_err:
+            logger.error(f"Error applying database migrations: {mig_err}")
+
     except Exception as e:
         logger.error(f"Database connection failed on startup: {e}")
     
@@ -48,6 +61,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled server exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}"},
+    )
+
 
 
 # Register routers
