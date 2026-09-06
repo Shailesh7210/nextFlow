@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useWorkflowStore } from '@/store/useWorkflowStore'
-import { Undo2, Redo2, Save, CloudLightning, Power, Key, Sun, Moon, Play, History, Download, Upload, LayoutTemplate, GitCompare, Users, KeyRound } from 'lucide-react'
+import { Undo2, Redo2, Save, CloudLightning, Power, Key, Sun, Moon, Play, History, Download, Upload, LayoutTemplate, GitCompare, Users, KeyRound, User } from 'lucide-react'
 import VersionDiffModal from '../modals/VersionDiffModal'
 
 interface ToolbarProps {
@@ -23,6 +23,7 @@ export default function Toolbar({ onOpenTemplates }: ToolbarProps) {
     setCredentialsModalOpen,
     setTeamModalOpen,
     setApiKeysModalOpen,
+    setProfileModalOpen,
     theme,
     setTheme,
     isExecuting,
@@ -190,6 +191,16 @@ export default function Toolbar({ onOpenTemplates }: ToolbarProps) {
             title="Import Workflow JSON"
           >
             <Upload size={15} />
+          </button>
+
+          {/* Profile Modal */}
+          <button
+            onClick={() => setProfileModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/40 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition"
+            title="User Profile & Settings"
+          >
+            <User size={15} />
+            Profile
           </button>
 
           {/* Team Members */}

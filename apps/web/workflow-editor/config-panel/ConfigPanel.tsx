@@ -672,6 +672,132 @@ export default function ConfigPanel() {
             </div>
           </div>
         )}
+
+        {/* Document Chunker Form */}
+        {type === 'document-chunker' && (
+          <div className="flex flex-col gap-4">
+            <div className="p-3 bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-900/40 rounded-lg text-cyan-800 dark:text-cyan-300 text-[12px] leading-relaxed">
+              <span className="font-semibold text-cyan-700 dark:text-cyan-400">Text Chunker:</span> Splits large document text into overlapping text segments for embedding generation.
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Document Text Input
+              </label>
+              <textarea
+                value={config.text || ''}
+                rows={5}
+                placeholder="{{ $json.document_content }}"
+                onChange={(e) => handleUpdate('text', e.target.value)}
+                className="w-full text-[12px] font-mono px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                  Chunk Size
+                </label>
+                <input
+                  type="number"
+                  value={config.chunk_size ?? 500}
+                  onChange={(e) => handleUpdate('chunk_size', parseInt(e.target.value) || 500)}
+                  className="w-full text-[13px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-cyan-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                  Overlap
+                </label>
+                <input
+                  type="number"
+                  value={config.overlap ?? 50}
+                  onChange={(e) => handleUpdate('overlap', parseInt(e.target.value) || 50)}
+                  className="w-full text-[13px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-cyan-500 font-mono"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Vector Indexer Form */}
+        {type === 'vector-indexer' && (
+          <div className="flex flex-col gap-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/40 rounded-lg text-blue-800 dark:text-blue-300 text-[12px] leading-relaxed">
+              <span className="font-semibold text-blue-700 dark:text-blue-400">Vector Indexer:</span> Generates vector embeddings for input document chunks and saves them in workspace isolated storage.
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Document Name / Tag
+              </label>
+              <input
+                type="text"
+                value={config.document_name || 'Product_Manual.pdf'}
+                placeholder="Product_Manual.pdf"
+                onChange={(e) => handleUpdate('document_name', e.target.value)}
+                className="w-full text-[13px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Document Text / Content
+              </label>
+              <textarea
+                value={config.text || ''}
+                rows={5}
+                placeholder="{{ $json.content }}"
+                onChange={(e) => handleUpdate('text', e.target.value)}
+                className="w-full text-[12px] font-mono px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* RAG Retriever Form */}
+        {type === 'rag-retriever' && (
+          <div className="flex flex-col gap-4">
+            <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-lg text-purple-800 dark:text-purple-300 text-[12px] leading-relaxed">
+              <span className="font-semibold text-purple-700 dark:text-purple-400">RAG Similarity Retriever:</span> Performs vector similarity search scoped to active workspace, returning top matching knowledge chunks.
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Search Query Expression
+              </label>
+              <input
+                type="text"
+                value={config.query || ''}
+                placeholder="{{ $json.customer_question }}"
+                onChange={(e) => handleUpdate('query', e.target.value)}
+                className="w-full text-[13px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-650 focus:outline-none focus:border-purple-500 font-mono"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Top Results Limit (K)
+                </label>
+                <span className="text-[12px] font-bold text-purple-600 dark:text-purple-400 font-mono">{config.top_k ?? 3}</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={10}
+                value={config.top_k ?? 3}
+                onChange={(e) => handleUpdate('top_k', parseInt(e.target.value) || 3)}
+                className="w-full accent-purple-600 bg-slate-200 dark:bg-slate-800 rounded h-1.5 cursor-pointer"
+              />
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
+                <HelpCircle size={10} className="shrink-0" />
+                <span>Output context binds as <code>{"{{ $node[\"rag-retriever\"].context }}"}</code></span>
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   )

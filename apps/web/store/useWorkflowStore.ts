@@ -32,8 +32,10 @@ interface WorkflowState {
   isCredentialsModalOpen: boolean
   isTeamModalOpen: boolean
   isApiKeysModalOpen: boolean
+  isProfileModalOpen: boolean
   setTeamModalOpen: (open: boolean) => void
   setApiKeysModalOpen: (open: boolean) => void
+  setProfileModalOpen: (open: boolean) => void
   theme: 'light' | 'dark'
   setTheme: (theme: 'light' | 'dark') => void
 
@@ -112,6 +114,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   isCredentialsModalOpen: false,
   isTeamModalOpen: false,
   isApiKeysModalOpen: false,
+  isProfileModalOpen: false,
   isExecutionsDrawerOpen: false,
   isVersionDiffModalOpen: false,
   versionsList: [],
@@ -122,6 +125,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   setVersionDiffModalOpen: (open) => set({ isVersionDiffModalOpen: open }),
   setTeamModalOpen: (open) => set({ isTeamModalOpen: open }),
   setApiKeysModalOpen: (open) => set({ isApiKeysModalOpen: open }),
+  setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
 
   setExecutionsDrawerOpen: (open) => set({ isExecutionsDrawerOpen: open }),
   setSelectedExecution: (exec) => set({ selectedExecution: exec }),
