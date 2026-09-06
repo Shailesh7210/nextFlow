@@ -78,6 +78,12 @@ interface WorkflowState {
   loadWorkflows: (token: string, workspaceId: string) => Promise<void>
   loadExecutions: (token: string, workspaceId: string) => Promise<void>
   executeWorkflow: (token: string, workspaceId: string, inputData?: any) => Promise<void>
+  isVersionDiffModalOpen: boolean
+  versionsList: any[]
+  diffResult: any | null
+  setVersionDiffModalOpen: (open: boolean) => void
+  loadVersions: (token: string, workspaceId: string) => Promise<void>
+  compareVersions: (token: string, workspaceId: string, v1: string, v2: string) => Promise<any>
   importWorkflowJson: (jsonString: string) => boolean
 }
 
@@ -101,8 +107,13 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   nodeExecutionStates: {},
   isCredentialsModalOpen: false,
   isExecutionsDrawerOpen: false,
+  isVersionDiffModalOpen: false,
+  versionsList: [],
+  diffResult: null,
   isExecuting: false,
   theme: 'dark',
+
+  setVersionDiffModalOpen: (open) => set({ isVersionDiffModalOpen: open }),
 
   setExecutionsDrawerOpen: (open) => set({ isExecutionsDrawerOpen: open }),
   setSelectedExecution: (exec) => set({ selectedExecution: exec }),
@@ -542,6 +553,42 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     } catch (err: any) {
       set({ error: err.message, isExecuting: false })
     }
+  },
+
+  loadVersions: async (token, workspaceId) => {
+    const { workflowId } = get()
+    if (!workflowId) return
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/workflows/${workflowId}/versions`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Workspace-ID': workspaceId
+        }
+      })
+      if (res.ok) {
+        const versions = await res.json()
+        set({ versionsList: versions })
+      }
+    } catch (err) {}
+  },
+
+  compareVersions: async (token, workspaceId, v1, v2) => {
+    const { workflowId } = get()
+    if (!workflowId) return null
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/workflows/${workflowId}/versions/diff?v1=${v1}&v2=${v2}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Workspace-ID': workspaceId
+        }
+      })
+      if (res.ok) {
+        const diffData = await res.json()
+        set({ diffResult: diffData })
+        return diffData
+      }
+    } catch (err) {}
+    return null
   },
 
   importWorkflowJson: (jsonString: string) => {
