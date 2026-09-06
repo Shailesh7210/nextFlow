@@ -206,6 +206,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       config = { items_path: '{{ $json.items }}', max_iterations: 100 }
     } else if (type === 'respond-to-webhook') {
       config = { status_code: 200, response_body: '{{ $json }}', response_headers: {} }
+    } else if (type === 'code-script') {
+      config = { language: 'python', code: '# Custom Python script\n# Variable reference: $json, $input, $node\noutput = {"processed": True, "count": len($json.get("items", []) if isinstance($json, dict) else [])}' }
     }
 
     const newNode: Node = {

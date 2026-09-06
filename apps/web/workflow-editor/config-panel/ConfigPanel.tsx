@@ -528,6 +528,69 @@ export default function ConfigPanel() {
           </div>
         )}
 
+        {/* Custom Code Script Form */}
+        {type === 'code-script' && (
+          <div className="flex flex-col gap-4">
+            <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 rounded-lg text-indigo-750 dark:text-indigo-300 text-[12px] leading-relaxed">
+              <span className="font-semibold text-indigo-700 dark:text-indigo-400">Custom Code Script:</span> Write Python expressions to process, map, or filter data. Available variables: <code>$json</code>, <code>$input</code>, <code>$node</code>. Assign output object to <code>output</code> or <code>result</code>.
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Script Engine / Language
+              </label>
+              <select
+                value={config.language || 'python'}
+                onChange={(e) => handleUpdate('language', e.target.value)}
+                className="w-full text-[13px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 font-medium"
+              >
+                <option value="python">Python 3 (Sandboxed)</option>
+              </select>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Python Code Editor
+                </label>
+              </div>
+              <textarea
+                value={config.code || ''}
+                rows={10}
+                placeholder="# Write Python transformation code here&#10;output = { 'summary': sum($json.get('items', [])) }"
+                onChange={(e) => handleUpdate('code', e.target.value)}
+                className="w-full text-[12px] font-mono px-3.5 py-2 border border-slate-300 dark:border-slate-800 bg-slate-900 text-emerald-400 rounded-lg focus:outline-none focus:border-indigo-500 leading-relaxed shadow-inner"
+              />
+              <div className="mt-2 flex flex-col gap-1 text-[10px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-950/50 p-2 rounded border border-slate-200 dark:border-slate-800">
+                <span className="font-semibold text-slate-600 dark:text-slate-300">Quick Insert Snippets:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleUpdate('code', '# Array Map & Filter\noutput = [x for x in $json.get("items", []) if x.get("active")]')}
+                    className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[10px] font-mono"
+                  >
+                    Filter Array
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdate('code', '# Calculate Totals\noutput = {"total": sum($json.get("values", [])), "count": len($json.get("values", []))}')}
+                    className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[10px] font-mono"
+                  >
+                    Calculate Sum
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdate('code', '# Merge Node Data\noutput = {**$json, **$node.get("node_1", {})}')}
+                    className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[10px] font-mono"
+                  >
+                    Merge Node Payload
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Respond to Webhook Form */}
         {type === 'respond-to-webhook' && (
           <div className="flex flex-col gap-4">
