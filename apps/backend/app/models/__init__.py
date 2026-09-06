@@ -5,6 +5,7 @@ from app.models.workflow_version import WorkflowVersion
 from app.models.credential import Credential
 from app.models.execution_log import ExecutionLog
 from app.models.approval_request import ApprovalRequest
+from app.models.api_key import ApiKey
 
 __all__ = [
     "User",
@@ -14,4 +15,5 @@ __all__ = [
     "Credential",
     "ExecutionLog",
     "ApprovalRequest",
+    "ApiKey",
 ]

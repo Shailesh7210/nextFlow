@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
     logger.info("Shutdown completed.")
 
-from app.api.v1 import auth, workflows, credentials, webhooks, websocket, approvals
+from app.api.v1 import auth, workflows, credentials, webhooks, websocket, approvals, api_keys, workspaces
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
@@ -56,6 +56,8 @@ app.include_router(credentials.router, prefix=f"{settings.API_V1_STR}/credential
 app.include_router(webhooks.router, prefix=f"{settings.API_V1_STR}/webhooks", tags=["webhooks"])
 app.include_router(websocket.router, prefix=f"{settings.API_V1_STR}/ws", tags=["websocket"])
 app.include_router(approvals.router, prefix=f"{settings.API_V1_STR}/approvals", tags=["approvals"])
+app.include_router(api_keys.router, prefix=f"{settings.API_V1_STR}/api-keys", tags=["api-keys"])
+app.include_router(workspaces.router, prefix=f"{settings.API_V1_STR}/workspaces", tags=["workspaces"])
 
 @app.get("/health")
 async def health(db: AsyncSession = Depends(get_db)):

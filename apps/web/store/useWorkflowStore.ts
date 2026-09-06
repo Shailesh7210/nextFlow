@@ -30,6 +30,10 @@ interface WorkflowState {
   isSaving: boolean
   error: string | null
   isCredentialsModalOpen: boolean
+  isTeamModalOpen: boolean
+  isApiKeysModalOpen: boolean
+  setTeamModalOpen: (open: boolean) => void
+  setApiKeysModalOpen: (open: boolean) => void
   theme: 'light' | 'dark'
   setTheme: (theme: 'light' | 'dark') => void
 
@@ -106,6 +110,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   activeExecutionId: null,
   nodeExecutionStates: {},
   isCredentialsModalOpen: false,
+  isTeamModalOpen: false,
+  isApiKeysModalOpen: false,
   isExecutionsDrawerOpen: false,
   isVersionDiffModalOpen: false,
   versionsList: [],
@@ -114,6 +120,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   theme: 'dark',
 
   setVersionDiffModalOpen: (open) => set({ isVersionDiffModalOpen: open }),
+  setTeamModalOpen: (open) => set({ isTeamModalOpen: open }),
+  setApiKeysModalOpen: (open) => set({ isApiKeysModalOpen: open }),
 
   setExecutionsDrawerOpen: (open) => set({ isExecutionsDrawerOpen: open }),
   setSelectedExecution: (exec) => set({ selectedExecution: exec }),
