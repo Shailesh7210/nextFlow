@@ -23,6 +23,7 @@ NexFlow is an n8n-inspired, self-hosted visual workflow automation platform. Bui
 - **Phase 15: Node-Level Error Handling & Fallback Retry Engine** — Automatic retries with exponential backoff delay (`retry_on_fail`, `max_retries`), continue-on-fail error swallowing (`continue_on_fail`), and visual node error indicators.
 - **Phase 16: Custom Webhook Response Node & Synchronous Response Engine** — Custom HTTP response node (`respond-to-webhook`), synchronous execution mode (`?sync=true`), custom HTTP status codes, headers, and dynamic response payloads.
 - **Phase 17: Custom Code Execution Node & Dynamic Transformation Engine** — Inline sandboxed Python script node (`code-script`), variable payload scope (`$json`, `$input`, `$node`), array filtering/mapping, math calculations, and quick insert code snippets.
+- **Phase 18: Human-in-the-Loop Approval Node & Paused Workflow Engine** — Approval gate node (`human-approval`), workflow execution pause (`PAUSED`), secure response tokens, approvals API router (`GET /pending`, `POST /{token}/respond`), twin `approved`/`rejected` output handles, and execution resumption.
 
 ---
 

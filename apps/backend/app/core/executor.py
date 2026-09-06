@@ -107,7 +107,7 @@ class WorkflowExecutor:
         Executes a single node's operation and returns the node execution output data.
         """
         node_type = node.get("type")
-        config = node.get("data", {}).get("config", {})
+        config = node.get("data", {}).get("config", {}) or node.get("config", {})
 
         if node_type == "webhook":
             # Webhook triggers just pass their trigger inputs downstream
@@ -414,6 +414,43 @@ class WorkflowExecutor:
                 logger.error(f"Error executing code-script node {node.get('id')}: {script_err}")
                 raise ValueError(f"Code Script Execution Error: {str(script_err)}")
 
+        elif node_type == "human-approval":
+            resumed_decision = context.get("_approval_decision")
+            if resumed_decision:
+                branch = resumed_decision.get("action", "approved")
+                node["_active_branch"] = branch
+                return {
+                    "status": "DECIDED",
+                    "action": branch,
+                    "decided_by": resumed_decision.get("decided_by"),
+                    "decided_at": resumed_decision.get("decided_at")
+                }
+
+            approver_email = self.resolve_value(config.get("approver_email", "admin@company.com"), context)
+            message = self.resolve_value(config.get("message", "Please approve this workflow step."), context)
+            execution_log_id = context.get("_execution_log_id")
+
+            from app.models.approval_request import ApprovalRequest
+            approval = ApprovalRequest(
+                execution_id=execution_log_id,
+                node_id=node.get("id"),
+                approver_email=str(approver_email),
+                message=str(message),
+                status="PENDING"
+            )
+            self.db.add(approval)
+            await self.db.commit()
+            await self.db.refresh(approval)
+
+            node["_paused"] = True
+            return {
+                "status": "PAUSED",
+                "approval_id": approval.id,
+                "approval_token": approval.token,
+                "approver_email": approval.approver_email,
+                "message": approval.message
+            }
+
         raise ValueError(f"Unknown node type: {node_type}")
 
     async def execute_node_resilient(self, node: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
@@ -531,6 +568,27 @@ class WorkflowExecutor:
             context["$node"][node_id] = node_output
             finished_at_iso = datetime.now(timezone.utc).isoformat()
 
+            if node.get("_paused") or (isinstance(node_output, dict) and node_output.get("status") == "PAUSED"):
+                if execution_log_id and node_executions is not None:
+                    node_executions.append({
+                        "node_id": node_id,
+                        "node_type": node_type,
+                        "status": "PAUSED",
+                        "started_at": node_started.isoformat(),
+                        "finished_at": finished_at_iso,
+                        "inputs": node_inputs,
+                        "outputs": node_output
+                    })
+                    await self.publish_event(execution_log_id, {
+                        "event": "NODE_PAUSED",
+                        "execution_id": execution_log_id,
+                        "node_id": node_id,
+                        "node_type": node_type,
+                        "outputs": node_output,
+                        "finished_at": finished_at_iso
+                    })
+                return node_output
+
             if execution_log_id and node_executions is not None:
                 node_executions.append({
                     "node_id": node_id,
@@ -558,8 +616,8 @@ class WorkflowExecutor:
             for edge in edges:
                 target = edge.get("target")
                 if active_branch:
-                    source_handle = edge.get("sourceHandle")
-                    if source_handle != active_branch:
+                    source_handle = edge.get("sourceHandle") or edge.get("sourcePort")
+                    if source_handle and source_handle != active_branch:
                         continue
                 
                 if target and target not in visited:
@@ -613,7 +671,6 @@ class WorkflowExecutor:
                 incoming_counts[target] += 1
 
         # 3. Locate start nodes
-        # Primary: find trigger node (type = 'webhook'). Secondary: nodes with 0 incoming edges.
         start_node_id = None
         for n in nodes:
             if n.get("type") == "webhook":
@@ -621,14 +678,12 @@ class WorkflowExecutor:
                 break
         
         if not start_node_id:
-            # Fallback to first node with no incoming edges
             for n_id, count in incoming_counts.items():
                 if count == 0:
                     start_node_id = n_id
                     break
 
         if not start_node_id and nodes:
-            # Fallback to any node
             start_node_id = nodes[0]["id"]
 
         if not start_node_id:
@@ -640,7 +695,8 @@ class WorkflowExecutor:
         # Initialize context namespaces
         context = {
             "$json": exec_log.input_data or {},
-            "$node": {}
+            "$node": {},
+            "_execution_log_id": execution_log_id
         }
         node_executions = []
         visited = set()
@@ -681,10 +737,33 @@ class WorkflowExecutor:
                 # Run node with resilience (retries & continue_on_fail)
                 node_output = await self.execute_node_resilient(node, context)
 
+                finished_at_iso = datetime.now(timezone.utc).isoformat()
+
+                if node.get("_paused") or (isinstance(node_output, dict) and node_output.get("status") == "PAUSED"):
+                    overall_status = "PAUSED"
+                    node_executions.append({
+                        "node_id": node_id,
+                        "node_type": node_type,
+                        "status": "PAUSED",
+                        "started_at": node_started.isoformat(),
+                        "finished_at": finished_at_iso,
+                        "inputs": node_inputs,
+                        "outputs": node_output
+                    })
+
+                    await self.publish_event(execution_log_id, {
+                        "event": "NODE_PAUSED",
+                        "execution_id": execution_log_id,
+                        "node_id": node_id,
+                        "node_type": node_type,
+                        "outputs": node_output,
+                        "finished_at": finished_at_iso
+                    })
+                    break
+
                 # Record results
                 context["$json"] = node_output
                 context["$node"][node_id] = node_output
-                finished_at_iso = datetime.now(timezone.utc).isoformat()
 
                 node_executions.append({
                     "node_id": node_id,
@@ -711,10 +790,9 @@ class WorkflowExecutor:
                 
                 for edge in edges:
                     target = edge.get("target")
-                    # If this is a conditional node, only follow matching active branch
                     if active_branch:
-                        source_handle = edge.get("sourceHandle")
-                        if source_handle != active_branch:
+                        source_handle = edge.get("sourceHandle") or edge.get("sourcePort")
+                        if source_handle and source_handle != active_branch:
                             continue
                     
                     if target and target not in visited:
@@ -745,7 +823,7 @@ class WorkflowExecutor:
                     "error": error_msg,
                     "finished_at": finished_at_iso
                 })
-                break # Halt executing remainder of the graph
+                break
 
         # 5. Finalize execution status
         exec_log.status = overall_status
@@ -762,3 +840,87 @@ class WorkflowExecutor:
             "error_message": error_msg,
             "finished_at": exec_log.finished_at.isoformat()
         })
+
+    async def resume_workflow_execution(
+        self,
+        execution_id: str,
+        token: str,
+        action: str,
+        decider_email: Optional[str] = "admin@company.com"
+    ) -> Dict[str, Any]:
+        """
+        Resumes a paused workflow execution after human approval or rejection.
+        """
+        from app.models.approval_request import ApprovalRequest
+
+        stmt = select(ApprovalRequest).filter(
+            ApprovalRequest.execution_id == execution_id,
+            ApprovalRequest.token == token,
+            ApprovalRequest.status == "PENDING"
+        )
+        res = await self.db.execute(stmt)
+        approval = res.scalars().first()
+        if not approval:
+            raise ValueError("Pending approval request not found or already decided.")
+
+        decision_status = "APPROVED" if action == "approve" else "REJECTED"
+        branch_action = "approved" if action == "approve" else "rejected"
+        now_utc = datetime.now(timezone.utc)
+
+        approval.status = decision_status
+        approval.decided_at = now_utc
+        approval.decided_by = decider_email
+        await self.db.commit()
+
+        stmt_log = select(ExecutionLog).filter(ExecutionLog.id == execution_id)
+        res_log = await self.db.execute(stmt_log)
+        exec_log = res_log.scalars().first()
+        if not exec_log:
+            raise ValueError("Execution log not found.")
+
+        stmt_v = select(WorkflowVersion).filter(WorkflowVersion.id == exec_log.version_id)
+        res_v = await self.db.execute(stmt_v)
+        version = res_v.scalars().first()
+        if not version:
+            raise ValueError("Workflow version snapshot not found.")
+
+        context = {
+            "$json": exec_log.output_data or {},
+            "$node": {},
+            "_execution_log_id": execution_id,
+            "_approval_decision": {
+                "action": branch_action,
+                "decided_by": decider_email,
+                "decided_at": now_utc.isoformat()
+            }
+        }
+
+        for n_exec in (exec_log.node_executions or []):
+            if n_exec.get("node_id"):
+                context["$node"][n_exec["node_id"]] = n_exec.get("outputs", {})
+
+        nodes = version.nodes
+        connections = version.connections
+        nodes_by_id = {n["id"]: n for n in nodes}
+        
+        paused_node = nodes_by_id.get(approval.node_id)
+        if paused_node:
+            paused_node["_active_branch"] = branch_action
+
+        exec_log.status = "RUNNING"
+        await self.db.commit()
+
+        output = await self.run_graph_traversal(
+            nodes=nodes,
+            connections=connections,
+            context=context,
+            execution_log_id=execution_id,
+            node_executions=exec_log.node_executions or []
+        )
+
+        exec_log.status = "SUCCESS"
+        exec_log.output_data = output
+        exec_log.finished_at = datetime.now(timezone.utc)
+        await self.db.commit()
+
+        return output

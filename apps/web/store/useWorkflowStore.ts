@@ -208,6 +208,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       config = { status_code: 200, response_body: '{{ $json }}', response_headers: {} }
     } else if (type === 'code-script') {
       config = { language: 'python', code: '# Custom Python script\n# Variable reference: $json, $input, $node\noutput = {"processed": True, "count": len($json.get("items", []) if isinstance($json, dict) else [])}' }
+    } else if (type === 'human-approval') {
+      config = { approver_email: 'admin@company.com', message: 'Please review and approve this workflow step.' }
     }
 
     const newNode: Node = {

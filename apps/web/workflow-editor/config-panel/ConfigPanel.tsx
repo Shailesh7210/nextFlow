@@ -591,6 +591,41 @@ export default function ConfigPanel() {
           </div>
         )}
 
+        {/* Human Approval Form */}
+        {type === 'human-approval' && (
+          <div className="flex flex-col gap-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-lg text-amber-750 dark:text-amber-300 text-[12px] leading-relaxed">
+              <span className="font-semibold text-amber-700 dark:text-amber-400">Approval Gate:</span> Pauses workflow execution until the designated approver responds via UI or API.
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Approver Email
+              </label>
+              <input
+                type="email"
+                value={config.approver_email || 'admin@company.com'}
+                placeholder="manager@company.com"
+                onChange={(e) => handleUpdate('approver_email', e.target.value)}
+                className="w-full text-[13px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Approval Prompt / Message
+              </label>
+              <textarea
+                value={config.message || 'Please review and approve this workflow step.'}
+                rows={3}
+                placeholder="e.g. Please approve expense payload of {{ $json.amount }}"
+                onChange={(e) => handleUpdate('message', e.target.value)}
+                className="w-full text-[12px] px-3.5 py-1.5 border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-amber-500 font-mono"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Respond to Webhook Form */}
         {type === 'respond-to-webhook' && (
           <div className="flex flex-col gap-4">
