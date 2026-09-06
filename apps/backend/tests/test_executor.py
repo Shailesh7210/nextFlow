@@ -277,3 +277,60 @@ async def test_loop_items_execution(client: AsyncClient, db_session: AsyncSessio
     assert exec_log.output_data["items"][2]["item"] == "cherry"
 
 
+@pytest.mark.asyncio
+async def test_node_retry_and_error_handling(client: AsyncClient, db_session: AsyncSession, run_celery_eager):
+    email = get_random_email()
+    password = "pass123password"
+    db = db_session
+
+    reg_res = await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+    assert reg_res.status_code == 201
+    headers = {"Authorization": f"Bearer {reg_res.json()['access_token']}"}
+
+    # HTTP Request node configured to fail on invalid port, with retry_on_fail and continue_on_fail
+    nodes = [
+        {"id": "wh-1", "type": "webhook", "position": {"x": 0, "y": 0}, "data": {}},
+        {
+            "id": "http-fail",
+            "type": "http-request",
+            "position": {"x": 200, "y": 0},
+            "data": {
+                "config": {
+                    "method": "GET",
+                    "url": "http://127.0.0.1:59999/unreachable",
+                    "retry_on_fail": True,
+                    "max_retries": 1,
+                    "retry_delay": 0.05,
+                    "continue_on_fail": True
+                }
+            }
+        }
+    ]
+    conns = [{"id": "e1", "source": "wh-1", "target": "http-fail"}]
+
+    wf_res = await client.post("/api/v1/workflows", json={"name": "Retry Test Workflow", "nodes": nodes, "connections": conns}, headers=headers)
+    assert wf_res.status_code == 201
+    wf_id = wf_res.json()["id"]
+
+    await client.post(f"/api/v1/workflows/{wf_id}/publish", headers=headers)
+    await client.post(f"/api/v1/workflows/{wf_id}/activate", headers=headers)
+
+    exec_res = await client.post(f"/api/v1/workflows/{wf_id}/execute", json={}, headers=headers)
+    assert exec_res.status_code == 201
+    exec_id = exec_res.json()["id"]
+
+    exec_log = None
+    for _ in range(60):
+        await asyncio.sleep(0.1)
+        db.expire_all()
+        exec_log = (await db.execute(select(ExecutionLog).filter(ExecutionLog.id == exec_id))).scalars().first()
+        if exec_log and exec_log.status in ("SUCCESS", "FAILED"):
+            break
+
+    assert exec_log is not None
+    assert exec_log.status == "SUCCESS"
+    assert exec_log.output_data["failed"] is True
+    assert "error" in exec_log.output_data
+
+
+

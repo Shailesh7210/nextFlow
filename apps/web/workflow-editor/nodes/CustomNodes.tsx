@@ -1,6 +1,6 @@
 import React from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles, Network, Repeat } from 'lucide-react'
+import { Webhook, Globe, Sliders, GitFork, GitMerge, Clock, Key, CheckCircle2, AlertCircle, Loader2, Sparkles, Network, Repeat, ShieldAlert } from 'lucide-react'
 import { useWorkflowStore } from '../../store/useWorkflowStore'
 
 interface NodeHeaderProps {
@@ -9,17 +9,28 @@ interface NodeHeaderProps {
   subtitle?: string
   colorClass: string // Tailwind bg class for header tag
   selected?: boolean
+  resilience?: {
+    retryOnFail?: boolean
+    continueOnFail?: boolean
+  }
 }
 
 // Reusable header component adapting to light/dark themes
-const NodeHeader = ({ icon, title, subtitle, colorClass, selected }: NodeHeaderProps) => {
+const NodeHeader = ({ icon, title, subtitle, colorClass, selected, resilience }: NodeHeaderProps) => {
   return (
     <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
       <div className={`p-2 rounded-lg text-white shadow-sm flex items-center justify-center shrink-0 ${colorClass}`}>
         {icon}
       </div>
       <div className="overflow-hidden flex-1">
-        <div className="font-bold text-slate-800 dark:text-slate-100 text-[13px] leading-tight truncate">{title}</div>
+        <div className="flex items-center justify-between gap-1">
+          <div className="font-bold text-slate-800 dark:text-slate-100 text-[13px] leading-tight truncate">{title}</div>
+          {(resilience?.retryOnFail || resilience?.continueOnFail) && (
+            <div title={resilience.continueOnFail ? "Continue on Error Enabled" : "Retries Enabled"} className="text-amber-500 shrink-0">
+              <ShieldAlert size={13} />
+            </div>
+          )}
+        </div>
         {subtitle && (
           <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5 leading-none">{subtitle}</div>
         )}
@@ -154,6 +165,7 @@ export const HttpRequestNode = ({ id, data, selected }: any) => {
         subtitle="API Integrator"
         colorClass="bg-green-600"
         selected={selected}
+        resilience={{ retryOnFail: data?.config?.retry_on_fail, continueOnFail: data?.config?.continue_on_fail }}
       />
 
       <div className="mt-3 flex flex-col gap-2">
